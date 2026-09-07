@@ -68,6 +68,14 @@ namespace UFMT.UI
             AppSettings.SetValue("CurrentEmote", (sender as TextBox).Text);
             if (!EmoteValidator.ValidateAfterPathChange((sender as TextBox)?.Text, CurrentEmote)) return;
             Log.Test($"Current emote's icons folder path is {CurrentEmote.IconsPath}");
+            Log.Test($"Animation length: {PsaReader.GetAnimationLength(@"C:\Users\aston\Desktop\CustomOgFn\CustomEmotes\JanuaryBop\Emote_JanuaryBop_CMM.psa")}");
+
+            (bool success, string maleAnim, string femaleAnim) = EmoteFolderScanner.GetAnimationsData(CurrentEmote.AnimationsPath);
+            if (!success) return;
+            CurrentEmote.MaleAnimationPsa = maleAnim;
+            CurrentEmote.FemaleAnimationPsa = femaleAnim;
+
+
         }
 
         private void BrowseButton_Click(object sender, RoutedEventArgs e) { }
