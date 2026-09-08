@@ -12,38 +12,56 @@ namespace UFMT.FnAssetsLogic
 {
     internal class EmoteFolderScanner
     {
-        internal static (bool success, string maleAnimationPsaFileName, string femaleAnimationPsaFileName) GetAnimationsData(string animationsPath)
+        internal static (bool success, string maleAnimationPsaFileName, string femaleAnimationPsaFileName) GetAnimationsData(string animationsFolderPath)
         {
-            string maleAnimationFolderPath = Path.Combine(animationsPath, "Male");
-            string femaleAnimationFolderPath = Path.Combine(animationsPath, "Female");
+            string maleAnimationFolderPath = Path.Combine(animationsFolderPath, "Male");
+            string femaleAnimationFolderPath = Path.Combine(animationsFolderPath, "Female");
 
-            string[] maleAnimationPsaFileNames = Directory.GetFiles(maleAnimationFolderPath, "*.psa");
-            string[] femaleAnimationPsaFileNames = Directory.GetFiles(femaleAnimationFolderPath, "*.psa");
+            string[] maleAnimationPsaFilePaths = Directory.GetFiles(maleAnimationFolderPath, "*.psa");
+            string[] femaleAnimationPsaFilePaths = Directory.GetFiles(femaleAnimationFolderPath, "*.psa");
 
-            if (maleAnimationPsaFileNames.Length > 1) 
+            if (maleAnimationPsaFilePaths.Length > 1) 
             {
                 Log.Error($"Multiple .psa files found in \"{maleAnimationFolderPath}\"!");
                 return (false, null, null);
             }
 
-            if (femaleAnimationPsaFileNames.Length > 1)
+            if (femaleAnimationPsaFilePaths.Length > 1)
             {
                 Log.Error($"Multiple .psa files found in \"{femaleAnimationFolderPath}\"!");
                 return (false, null, null);
             }
 
-            if (maleAnimationPsaFileNames.Length == 0 && femaleAnimationPsaFileNames.Length == 0)
+            if (maleAnimationPsaFilePaths.Length == 0 && femaleAnimationPsaFilePaths.Length == 0)
             {
                 Log.Error("No animations found for the emote (no .psa files found in Male or Female animation folders)!");
                 return (false, null, null);
             }
 
-            if (maleAnimationPsaFileNames.Length == 0) Log.Warning($"No .psa files found in \"{maleAnimationFolderPath}\"");
+            if (maleAnimationPsaFilePaths.Length == 0) Log.Warning($"No .psa files found in \"{maleAnimationFolderPath}\"");
 
-            Log.Success($"Found {Path.GetFileName(maleAnimationPsaFileNames[0])} in Male animation folder");
-            Log.Success($"Found {Path.GetFileName(femaleAnimationPsaFileNames[0])} in Female animation folder");
+            Log.Success($"Found {Path.GetFileName(maleAnimationPsaFilePaths[0])} in Male animation folder");
+            Log.Success($"Found {Path.GetFileName(femaleAnimationPsaFilePaths[0])} in Female animation folder");
 
-            return (true, Path.GetFileName(maleAnimationPsaFileNames[0]), Path.GetFileName(femaleAnimationPsaFileNames[0]));
+            return (true, Path.GetFileName(maleAnimationPsaFilePaths[0]), Path.GetFileName(femaleAnimationPsaFilePaths[0]));
+        }
+
+        internal static (bool, string) GetSoundData(string SoundFolderPath)
+        {
+            string[] WavFilePaths = Directory.GetFiles(SoundFolderPath);
+            if (WavFilePaths.Length > 1)
+            {
+                Log.Error($"Multiple .wav files found in \"{SoundFolderPath}\"!");
+                return (false, null);
+            }
+            if (WavFilePaths.Length == 0)
+            {
+                Log.Error($"No .wav files found in \"{SoundFolderPath}\"!");
+                return (false, null);
+            }
+
+            Log.Success($"Found {Path.GetFileName(WavFilePaths[0])} in Sound folder");
+            return (true, Path.GetFileName(SoundFolderPath));
         }
     }
 }
