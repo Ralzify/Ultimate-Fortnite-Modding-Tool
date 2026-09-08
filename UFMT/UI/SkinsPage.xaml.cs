@@ -177,7 +177,11 @@ namespace UFMT.UI
 
                 DefaultTextureSetup.CreateDefaultTextures(DefaultTextureSetup.FindMissingDefaultTextures(CurrentSkin.TexturesPath), CurrentSkin.TexturesPath);
                 if (CurrentFnVersion.ManuallySwizzleMaterials) TextureSwizzler.SwizzleSpecularTextures(CurrentSkin.TexturesPath);
-                (CurrentSkin.LargeIcon, CurrentSkin.SmallIcon) = TextureCategorizer.GetIconTextures(CurrentSkin.TexturesPath);
+                (string largeIcon, string smallIcon) = TextureCategorizer.GetIconTextures(CurrentSkin.TexturesPath, "skin");
+                if (largeIcon == null || smallIcon == null) return;
+                CurrentSkin.LargeIcon = largeIcon;
+                CurrentSkin.SmallIcon = smallIcon;
+
                 CurrentSkin.Textures = TextureCategorizer.GetAllTextures(CurrentSkin.TexturesPath);
                 MaterialTextureAssigner.AssignTexturesToAllMaterials(CurrentSkin.TexturesPath, CurrentSkin.Codename, CurrentSkin.Materials);
             }

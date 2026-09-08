@@ -29,15 +29,31 @@ namespace UFMT.MaterialTextureAssignment
             return textures;
         }
 
-        internal static (string largeIcon, string smallIcon) GetIconTextures(string texturesPath)
+        internal static (string largeIcon, string smallIcon) GetIconTextures(string texturesPath, string cosmeticType)
         {
-            string largeIcon;
-            string smallIcon;
+            string largeIcon = string.Empty;
+            string smallIcon = string.Empty;
             List<string> textures = Directory.GetFiles(texturesPath, "*.png").ToList().Select(tex => Path.GetFileNameWithoutExtension(tex)).ToList();
-            largeIcon = textures.FirstOrDefault(tex => (tex.ToLower().StartsWith("t-soldier") || tex.ToLower().StartsWith("t_soldier")) && 
-            (tex.ToLower().EndsWith("-l") || tex.ToLower().EndsWith("_l")));
-            smallIcon = textures.FirstOrDefault(tex => (tex.ToLower().StartsWith("t-soldier") || tex.ToLower().StartsWith("t_soldier")) && 
-            !tex.ToLower().EndsWith("-l") && !tex.ToLower().EndsWith("_l"));
+
+            if (cosmeticType == "skin")
+            {
+                largeIcon = textures.FirstOrDefault(tex => (tex.ToLower().StartsWith("t-icon") || tex.ToLower().StartsWith("t_icon")) &&
+                (tex.ToLower().EndsWith("-l") || tex.ToLower().EndsWith("_l")));
+                smallIcon = textures.FirstOrDefault(tex => (tex.ToLower().StartsWith("t-icon") || tex.ToLower().StartsWith("t_icon")) &&
+                !tex.ToLower().EndsWith("-l") && !tex.ToLower().EndsWith("_l"));
+            }
+            else if (cosmeticType == "emote")
+            {
+                largeIcon = textures.FirstOrDefault(tex => (tex.ToLower().StartsWith("t-icon") || tex.ToLower().StartsWith("t_icon")) &&
+                (tex.ToLower().EndsWith("-l") || tex.ToLower().EndsWith("_l")));
+                smallIcon = textures.FirstOrDefault(tex => (tex.ToLower().StartsWith("t-icon") || tex.ToLower().StartsWith("t_icon")) &&
+                !tex.ToLower().EndsWith("-l") && !tex.ToLower().EndsWith("_l"));
+            }
+            else
+            {
+                Log.Error($"GetIconTextures method called with unknown cosmetic argument \"{cosmeticType}\"");
+                return (null, null);
+            }
 
             if (largeIcon == null && smallIcon != null)
             {

@@ -18,6 +18,7 @@ using System.Threading.Tasks;
 using UFMT.Core;
 using UFMT.FnAssets;
 using UFMT.FnAssetsLogic;
+using UFMT.MaterialTextureAssignment;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 
@@ -25,7 +26,7 @@ namespace UFMT.UI
 {
     public sealed partial class EmotesPage : Page
     {
-        private CancellationTokenSource _currentSkinPathDebounce;
+        private CancellationTokenSource _currentEmotePathDebounce;
         public event PropertyChangedEventHandler PropertyChanged;
         private EmoteData _currentEmote;
         public EmoteData CurrentEmote
@@ -53,9 +54,9 @@ namespace UFMT.UI
 
         private async void CurrentEmotePathTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            _currentSkinPathDebounce?.Cancel();
-            _currentSkinPathDebounce = new CancellationTokenSource();
-            var token = _currentSkinPathDebounce.Token;
+            _currentEmotePathDebounce?.Cancel();
+            _currentEmotePathDebounce = new CancellationTokenSource();
+            var token = _currentEmotePathDebounce.Token;
             try
             {
                 await Task.Delay(250, token);
@@ -75,7 +76,17 @@ namespace UFMT.UI
             CurrentEmote.MaleAnimationPsa = maleAnim;
             CurrentEmote.FemaleAnimationPsa = femaleAnim;
 
+            Log.Test($"Current emote sound path is {CurrentEmote.SoundPath}");
+            (success, string wav) = EmoteFolderScanner.GetSoundData(CurrentEmote.SoundPath);
+            if (!success) return;
+            CurrentEmote.SoundWavPath = wav;
 
+            (string largeIcon, string smallIcon) = TextureCategorizer.GetIconTextures(CurrentEmote.IconsPath, "emote");
+            if (largeIcon == null || smallIcon == null) return;
+            CurrentEmote.LargeIcon = largeIcon;
+            CurrentEmote.SmallIcon = smallIcon;
+
+            Log.Test($"Large icon: {CurrentEmote.LargeIcon}, Small icon: {CurrentEmote.SmallIcon}");
         }
 
         private void BrowseButton_Click(object sender, RoutedEventArgs e) { }
@@ -190,6 +201,7 @@ namespace UFMT.UI
         public string FemaleAnimationFbx { get; set; } = string.Empty;
         public string FemaleAnimationJson { get; set; } = string.Empty;
         public float FemaleAnimationLength { get; set; } = 0;
+        public string SoundWavPath { get; set; } = string.Empty;
         public string OutputContentPath { get; set; } = string.Empty;
 
         public string Path = string.Empty;
