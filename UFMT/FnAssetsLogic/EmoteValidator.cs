@@ -44,13 +44,13 @@ namespace UFMT.FnAssetsLogic
             string iconsPath = Path.Combine(sourcePath, "Icons");
             if (!Directory.Exists(iconsPath))
             {
-                Log.Error($"Cannot find UI folder inside \"{sourcePath}\"");
+                Log.Error($"Cannot find Icons folder inside \"{sourcePath}\"");
                 return false;
             }
-            string soundPath = Path.Combine(sourcePath, "Animations");
-            if (!Directory.Exists(animationsPath))
+            string soundPath = Path.Combine(sourcePath, "Sound");
+            if (!Directory.Exists(soundPath))
             {
-                Log.Error($"Cannot find Animations folder inside \"{sourcePath}\"");
+                Log.Error($"Cannot find Sound folder inside \"{sourcePath}\"");
                 return false;
             }
 
