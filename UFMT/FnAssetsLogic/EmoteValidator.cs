@@ -15,13 +15,13 @@ namespace UFMT.FnAssetsLogic
         {
             if (currentEmote == null)
             {
-                Log.Error("Current Emote was null when trying to validate it!");
+                Log.Error("Current emote was null when trying to validate it!");
                 return false;
             }
 
             if (currentEmoteFolderPath == string.Empty)
             {
-                Log.Error("The Current skin path is empty!");
+                Log.Error("Current emote path is empty!");
                 return false;
             }
             if (!Directory.Exists(currentEmoteFolderPath))

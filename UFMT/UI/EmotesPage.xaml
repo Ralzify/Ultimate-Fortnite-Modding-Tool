@@ -55,24 +55,24 @@
                         <TextBlock Text="Name" 
                                 FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         <TextBox Width="300" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                PlaceholderText="Enter emote name" MaxLength="50" x:Name="characterNameTextBox"/>
+                                PlaceholderText="Enter emote name" MaxLength="50" x:Name="characterNameTextBox" Text="{x:Bind CurrentEmote.Name, Mode=TwoWay}"/>
                         <Border Width="5"/>
                         <TextBlock Text="Description" 
                                 FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         <TextBox Width="300" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                PlaceholderText="Enter emote description" MaxLength="150" x:Name="characterDescriptionTextBox"/>
+                                PlaceholderText="Enter emote description" MaxLength="150" x:Name="characterDescriptionTextBox" Text="{x:Bind CurrentEmote.Description, Mode=TwoWay}"/>
                         <Border Width="5"/>
                         <TextBlock Text="EID" 
                                 FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         <TextBox Width="300" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                PlaceholderText="Enter emote EID" MaxLength="50" x:Name="characterCIDTextBox"/>
+                                PlaceholderText="Enter emote EID" MaxLength="50" x:Name="characterCIDTextBox" Text="{x:Bind CurrentEmote.EID, Mode=TwoWay}"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8" Margin="6, 0, 0, 0">
                         <TextBlock Text="Rarity" 
                                 FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         <ComboBox
                                 PlaceholderText="Select The rarity..."
-                                Tag="rarity" x:Name="rarityComboBox" >
+                                Tag="rarity" x:Name="rarityComboBox" SelectedItem="{x:Bind CurrentEmote.Rarity, Mode=TwoWay}">
                             <x:String>Common</x:String>
                             <x:String>Uncommon</x:String>
                             <x:String>Rare</x:String>

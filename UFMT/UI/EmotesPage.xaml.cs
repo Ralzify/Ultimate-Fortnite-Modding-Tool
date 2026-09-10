@@ -24,7 +24,7 @@ using Windows.Foundation.Collections;
 
 namespace UFMT.UI
 {
-    public sealed partial class EmotesPage : Page
+    public sealed partial class EmotesPage : Page, INotifyPropertyChanged
     {
         private CancellationTokenSource _currentEmotePathDebounce;
         public event PropertyChangedEventHandler PropertyChanged;
@@ -47,8 +47,34 @@ namespace UFMT.UI
             CurrentEmote = new EmoteData();
 
             EmotesPathTextBox.Text = AppSettings.GetValue("EmotesPath", string.Empty);
+
+            seriesComboBox.Items.Clear();
+            var seriesOptions = AppSettings.GetValue<ObservableCollection<string>>("AvailableSeries", null);
+            if (seriesOptions != null)
+            {
+                foreach (string series in seriesOptions)
+                {
+                    seriesComboBox.Items.Add(series);
+                }
+            }
+            else
+            {
+                seriesComboBox.Items.Add("None");
+                foreach (string series in SkinAssetCreator.SeriesCodenames.Keys)
+                {
+                    seriesComboBox.Items.Add(series);
+                }
+                seriesComboBox.Items.Add("+Add");
+            }
+            seriesComboBox.SelectedIndex = 0;
+            seriesComboBox.Items.VectorChanged += SaveSeries;
+
             CurrentEmotePathTextBox.Text = AppSettings.GetValue("CurrentEmotePath", string.Empty);
             CurrentEmotePathTextBox_TextChanged(CurrentEmotePathTextBox, null);
+
+            ((FrameworkElement)this.Content).Loaded += (s, e) =>
+            {
+            };
         }
 
         private void EmotesPathTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -70,37 +96,82 @@ namespace UFMT.UI
                 return;
             }
 
+            CurrentEmote = new EmoteData();
+
             AppSettings.SetValue("CurrentEmotePath", (sender as TextBox).Text);
             if (!EmoteValidator.ValidateAfterPathChange((sender as TextBox)?.Text, CurrentEmote)) return;
             Log.Test($"Current emote's icons folder path is {CurrentEmote.IconsPath}");
 
-            (bool success, string maleAnim, string femaleAnim) = EmoteFolderScanner.GetAnimationsData(CurrentEmote.AnimationsPath);
-            if (!success) return;
-            CurrentEmote.MaleAnimationPsa = maleAnim;
-            CurrentEmote.FemaleAnimationPsa = femaleAnim;
+            CurrentEmote.Codename = Path.GetFileName(CurrentEmote.Path);
 
-            Log.Test($"Current emote sound path is {CurrentEmote.SoundPath}");
-            (success, string wav) = EmoteFolderScanner.GetSoundData(CurrentEmote.SoundPath);
-            if (!success) return;
-            CurrentEmote.SoundWavPath = wav;
+            EmoteData loadedJson = LoadEmoteConfig(Path.Combine(CurrentEmote.Path, $"{CurrentEmote.Codename}_Settings.json"));
 
-            (string largeIcon, string smallIcon) = TextureCategorizer.GetIconTextures(CurrentEmote.IconsPath, "emote");
-            if (largeIcon == null || smallIcon == null) return;
-            CurrentEmote.LargeIcon = largeIcon;
-            CurrentEmote.SmallIcon = smallIcon;
+            if (loadedJson != null)
+            {
+                CurrentEmote = loadedJson;
+                CurrentEmote.Path = CurrentEmotePathTextBox.Text;
+                if (!EmoteValidator.ValidateAfterPathChange(CurrentEmote.Path, CurrentEmote)) return;
+                Log.Test("Current emote was not null!");
+                Log.Test($"Current emote male animation length: {CurrentEmote.MaleAnimationLength}, current emote name: {CurrentEmote.Name}");
+            }
+            else
+            {
+                (bool success, string maleAnim, string femaleAnim) = EmoteFolderScanner.GetAnimationsData(CurrentEmote.AnimationsPath);
+                if (!success) return;
+                CurrentEmote.MaleAnimationPsa = maleAnim;
+                CurrentEmote.FemaleAnimationPsa = femaleAnim;
 
-            Log.Test($"Large icon: {CurrentEmote.LargeIcon}, Small icon: {CurrentEmote.SmallIcon}");
+                Log.Test($"Current emote sound path is {CurrentEmote.SoundPath}");
+                (success, string wav) = EmoteFolderScanner.GetSoundData(CurrentEmote.SoundPath);
+                if (!success) return;
+                CurrentEmote.SoundWavPath = wav;
 
-            CurrentEmote.MaleAnimationLength = PsaReader.GetAnimationLength(Path.Combine(CurrentEmote.AnimationsPath, "Male", CurrentEmote.MaleAnimationPsa));
-            CurrentEmote.FemaleAnimationLength = PsaReader.GetAnimationLength(Path.Combine(CurrentEmote.AnimationsPath, "Female", CurrentEmote.FemaleAnimationPsa));
+                (string largeIcon, string smallIcon) = TextureCategorizer.GetIconTextures(CurrentEmote.IconsPath, "emote");
+                if (largeIcon == null || smallIcon == null) return;
+                CurrentEmote.LargeIcon = largeIcon;
+                CurrentEmote.SmallIcon = smallIcon;
 
-            CurrentEmote.MaleAnimationLength = Math.Round(CurrentEmote.MaleAnimationLength / 30.0, 6);
-            CurrentEmote.FemaleAnimationLength = Math.Round(CurrentEmote.FemaleAnimationLength / 30.0, 6);
+                Log.Test($"Large icon: {CurrentEmote.LargeIcon}, Small icon: {CurrentEmote.SmallIcon}");
+
+                CurrentEmote.MaleAnimationLength = PsaReader.GetAnimationLength(Path.Combine(CurrentEmote.AnimationsPath, "Male", CurrentEmote.MaleAnimationPsa));
+                CurrentEmote.FemaleAnimationLength = PsaReader.GetAnimationLength(Path.Combine(CurrentEmote.AnimationsPath, "Female", CurrentEmote.FemaleAnimationPsa));
+
+                CurrentEmote.MaleAnimationLength = Math.Round(CurrentEmote.MaleAnimationLength / 30.0, 6);
+                CurrentEmote.FemaleAnimationLength = Math.Round(CurrentEmote.FemaleAnimationLength / 30.0, 6);
+
+                CurrentEmote.EID = $"EID_{CurrentEmote.Codename}";
+            }
+
+            CurrentEmote.PropertyChanged += (s, e) => SaveEmoteConfig();
         }
 
         private void BrowseButton_Click(object sender, RoutedEventArgs e) { }
         private void CreateEmoteFolder_Click(object sender, RoutedEventArgs e) { }
         private void Reimport_Click(object sender, RoutedEventArgs e) { }
+        private void SaveSeries(IObservableVector<object> sender, IVectorChangedEventArgs e)
+        {
+            AppSettings.SetValue("AvailableSeries", seriesComboBox.Items);
+        }
+        public void SaveEmoteConfig()
+        {
+            Log.Test("Save Emote config called!");
+            if (CurrentEmote == null || string.IsNullOrEmpty(CurrentEmote.Path)) return;
+
+            string jsonPath = Path.Combine(CurrentEmote.Path, $"{CurrentEmote.Codename}_Settings.json");
+            var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
+            string jsonString = System.Text.Json.JsonSerializer.Serialize(CurrentEmote, options);
+
+            File.WriteAllText(jsonPath, jsonString);
+        }
+        private EmoteData LoadEmoteConfig(string jsonPath)
+        {
+            string filePath = jsonPath;
+            if (!File.Exists(filePath)) return null;
+            string jsonString = File.ReadAllText(filePath);
+            EmoteData loadedEmote = System.Text.Json.JsonSerializer.Deserialize<EmoteData>(jsonString);
+
+            return loadedEmote;
+        }
     }
 
     public class EmoteData : INotifyPropertyChanged
