@@ -45,6 +45,10 @@ namespace UFMT.UI
         {
             InitializeComponent();
             CurrentEmote = new EmoteData();
+
+            EmotesPathTextBox.Text = AppSettings.GetValue("EmotesPath", string.Empty);
+            CurrentEmotePathTextBox.Text = AppSettings.GetValue("CurrentEmotePath", string.Empty);
+            CurrentEmotePathTextBox_TextChanged(CurrentEmotePathTextBox, null);
         }
 
         private void EmotesPathTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -66,10 +70,9 @@ namespace UFMT.UI
                 return;
             }
 
-            AppSettings.SetValue("CurrentEmote", (sender as TextBox).Text);
+            AppSettings.SetValue("CurrentEmotePath", (sender as TextBox).Text);
             if (!EmoteValidator.ValidateAfterPathChange((sender as TextBox)?.Text, CurrentEmote)) return;
             Log.Test($"Current emote's icons folder path is {CurrentEmote.IconsPath}");
-            Log.Test($"Animation length: {PsaReader.GetAnimationLength(@"C:\Users\aston\Desktop\CustomOgFn\CustomEmotes\JanuaryBop\Emote_JanuaryBop_CMM.psa")}");
 
             (bool success, string maleAnim, string femaleAnim) = EmoteFolderScanner.GetAnimationsData(CurrentEmote.AnimationsPath);
             if (!success) return;
@@ -87,6 +90,12 @@ namespace UFMT.UI
             CurrentEmote.SmallIcon = smallIcon;
 
             Log.Test($"Large icon: {CurrentEmote.LargeIcon}, Small icon: {CurrentEmote.SmallIcon}");
+
+            CurrentEmote.MaleAnimationLength = PsaReader.GetAnimationLength(Path.Combine(CurrentEmote.AnimationsPath, "Male", CurrentEmote.MaleAnimationPsa));
+            CurrentEmote.FemaleAnimationLength = PsaReader.GetAnimationLength(Path.Combine(CurrentEmote.AnimationsPath, "Female", CurrentEmote.FemaleAnimationPsa));
+
+            CurrentEmote.MaleAnimationLength = Math.Round(CurrentEmote.MaleAnimationLength / 30.0, 6);
+            CurrentEmote.FemaleAnimationLength = Math.Round(CurrentEmote.FemaleAnimationLength / 30.0, 6);
         }
 
         private void BrowseButton_Click(object sender, RoutedEventArgs e) { }
@@ -196,11 +205,35 @@ namespace UFMT.UI
         public string MaleAnimationPsa { get; set; } = string.Empty;
         public string MaleAnimationFbx { get; set; } = string.Empty;
         public string MaleAnimationJson { get; set; } = string.Empty;
-        public float MaleAnimationLength { get; set; } = 0;
+        private double _maleAnimationLength = 0;
+        public double MaleAnimationLength
+        {
+            get => _maleAnimationLength;
+            set
+            {
+                if (value != _maleAnimationLength)
+                {
+                    _maleAnimationLength = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
         public string FemaleAnimationPsa { get; set; } = string.Empty;
         public string FemaleAnimationFbx { get; set; } = string.Empty;
         public string FemaleAnimationJson { get; set; } = string.Empty;
-        public float FemaleAnimationLength { get; set; } = 0;
+        private double _femaleAnimationLength = 0;
+        public double FemaleAnimationLength
+        {
+            get => _femaleAnimationLength;
+            set
+            {
+                if (value != _femaleAnimationLength)
+                {
+                    _femaleAnimationLength = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
         public string SoundWavPath { get; set; } = string.Empty;
         public string OutputContentPath { get; set; } = string.Empty;
 
