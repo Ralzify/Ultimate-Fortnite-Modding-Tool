@@ -69,25 +69,20 @@ namespace UFMT.Blender
             return true;
         }
 
-        internal static async Task<(bool isValid, string lobbyAnimationFbx, float lobbyAnimationLength)> ConvertPsaToFbx
-        (string sourcePath, string codename, string lobbyAnimationFolderPath, string lobbyAnimationPsa)
+        internal static async Task<(bool isValid, string FbxFileNameWithoutExtension, float AnimationLength)> ConvertPsaToFbx
+        (string psaFilePath, string fbxFileExportPath)
         {
-            string lobbyAnimationFbx = string.Empty;
             float animationLength = 0f;
-            Console.WriteLine("Converting .psa Lobby animation to .fbx");
+            Console.WriteLine($"Converting {Path.GetFileName(psaFilePath)} to {Path.GetFileName(fbxFileExportPath)}");
             await Task.Run(() =>
             {
-                string fbxFolderPath = Path.Combine(sourcePath, "Fbx", "Lobby_Animation");
-                if (!Directory.Exists(fbxFolderPath)) 
+                string fbxFolderPath = Path.GetDirectoryName(fbxFileExportPath);
+                if (!Directory.Exists(fbxFolderPath))
                 {
                     Directory.CreateDirectory(fbxFolderPath);
                     Console.WriteLine($"Created \n{fbxFolderPath}\n");
                 }
-                string exportName = $"{codename}_Lobby_Animation";
-                lobbyAnimationFbx = exportName;
-                string psaFilePath = Path.Combine(lobbyAnimationFolderPath, $"{lobbyAnimationPsa}.psa");
-                string fbxFilePath = Path.Combine(fbxFolderPath, $"{exportName}.fbx");
-                string arguments = $"-b \"{ProperSkeletonBlendPath}\" --python \"{PsaConvertScript}\" -- \"{psaFilePath}\" \"{fbxFilePath}\"";
+                string arguments = $"-b \"{ProperSkeletonBlendPath}\" --python \"{PsaConvertScript}\" -- \"{psaFilePath}\" \"{fbxFileExportPath}\"";
 
                 ProcessStartInfo psi = new ProcessStartInfo(App.Settings.BlenderPath, arguments)
                 {
@@ -96,7 +91,6 @@ namespace UFMT.Blender
                     UseShellExecute = false,
                     CreateNoWindow = true
                 };
-
                 using (Process blender = Process.Start(psi))
                 {
                     var stdoutTask = Task.Run(() => blender.StandardOutput.ReadToEnd());
@@ -105,7 +99,7 @@ namespace UFMT.Blender
                     Task.WhenAll(stdoutTask, stderrTask).Wait();
                 }
 
-                string metaPath = fbxFilePath + ".meta";
+                string metaPath = fbxFileExportPath + ".meta";
                 if (File.Exists(metaPath))
                 {
                     string content = File.ReadAllText(metaPath).Trim();
@@ -116,8 +110,8 @@ namespace UFMT.Blender
                     File.Delete(metaPath);
                 }
             });
-            Log.Success($"Successfully converted the Lobby .psa animation to .fbx!");
-            return (true, lobbyAnimationFbx, animationLength);
+            Log.Success($"Successfully converted {Path.GetFileName(psaFilePath)} to {Path.GetFileName(fbxFileExportPath)}");
+            return (true, Path.GetFileNameWithoutExtension(fbxFileExportPath), animationLength);
         }
 
     }

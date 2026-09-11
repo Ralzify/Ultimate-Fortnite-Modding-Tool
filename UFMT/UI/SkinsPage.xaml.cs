@@ -273,7 +273,8 @@ namespace UFMT.UI
             if (!await FbxConverter.ConvertPskToFbx(exportSkin.CharacterParts, exportSkin.SourcePath, exportSkin.Codename)) return;
 
             var (isAnimValid, lobbyAnimationFbx, lobbyAnimationLength) =
-            await FbxConverter.ConvertPsaToFbx(exportSkin.SourcePath, exportSkin.Codename, exportSkin.LobbyAnimationFolderPath, exportSkin.LobbyAnimationPsa);
+            await FbxConverter.ConvertPsaToFbx(Path.Combine(exportSkin.LobbyAnimationFolderPath, $"{exportSkin.LobbyAnimationPsa}.psa"), 
+            Path.Combine(exportSkin.SourcePath, "Fbx", "Lobby_Animation", $"{exportSkin.Codename}_Lobby_Animation.fbx"));
             if (!isAnimValid) return;
             exportSkin.LobbyAnimationFbx = lobbyAnimationFbx;
             exportSkin.LobbyAnimationLength = lobbyAnimationLength;
