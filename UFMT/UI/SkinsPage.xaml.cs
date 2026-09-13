@@ -295,7 +295,7 @@ namespace UFMT.UI
             (cookedCodenamePath, "Animations", $"{exportSkin.Codename}_Lobby_Animation.uasset")], exportSkin.CharacterParts.Select
             (cp => Path.Combine(cookedCodenamePath, "Meshes", $"{Path.GetFileNameWithoutExtension(cp.FbxPath)}.uasset")).ToArray());
 
-            AssetRegistryBuilder.CreateAssetRegistry(exportCookedAssetsPath, exportUeVer.Name, exportSkin.Path, exportOutputFnGamePath, ueSkinsPackagePath);
+            AssetRegistryBuilder.CreateAssetRegistry(exportCookedAssetsPath, exportUeVer.Name, exportOutputFnGamePath, ueSkinsPackagePath, "/Game/CustomEmotes", exportSkin.Path);
 
             DirectoryInfo cookedCharacterDirectory = new DirectoryInfo(
             Path.Combine(exportCookedAssetsPath, ueSkinsOsPath, exportSkin.Codename));
