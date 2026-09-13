@@ -41,6 +41,8 @@ delete_directory_if_exists(animations_destination_path)
 delete_directory_if_exists(sounds_destination_path)
 delete_directory_if_exists(icons_destination_path)
 
+unreal.SystemLibrary.collect_garbage()
+
 def create_fake_eid():
     template_path = "/Game/CID_Template"
     new_path      = "{}/{}/{}".format(package_path, code_name, eid)
@@ -114,7 +116,7 @@ def import_animation(fbx_path, animation_name):
                 anim_sequence.set_editor_property("retarget_source", "MPR_SK_M_MALE_Base_Skeleton") # Always apply male retarget source for emote anims
 
                 unreal.EditorAssetLibrary.save_loaded_asset(anim_sequence)
-                unreal.log("RETARGET SOURCE SET => '{}' on {}".format(retarget_source, path))
+                unreal.log("RETARGET SOURCE SET => MPR_SK_M_MALE_Base_Skeleton on {}".format(path))
             else:
                 unreal.log_error("FAILED to cast or load asset as AnimSequence: {}".format(path))
     else:
@@ -160,7 +162,7 @@ def import_sound(wav_path):
         sound_wave = unreal.load_asset(task.imported_object_paths[0])
         if sound_wave:
             sound_wave.set_editor_property("streaming", True)
-            sound_wave.set_editor_property("b_virtualize_when_silent", True)
+            sound_wave.set_editor_property("virtualize_when_silent", True)
             sound_wave.set_editor_property("looping", True)
 
             if sound_wav_compression_quality is not None:
@@ -171,16 +173,37 @@ def import_sound(wav_path):
     else:
         unreal.log_error("FAILED => Could not import sound: {}".format(wav_path))
 
+def import_icon_texture(texture_path):
+    task                  = unreal.AssetImportTask()
+    task.filename         = texture_path
+    task.destination_path = icons_destination_path
+    task.destination_name = os.path.splitext(os.path.basename(texture_path))[0]
+    task.replace_existing = True
+    task.automated        = True
+    task.save             = False
+
+    unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks([task])
+
+    if task.imported_object_paths:
+        asset_path = task.imported_object_paths[0]
+        texture    = unreal.load_asset(asset_path)
+        texture.lod_group = unreal.TextureGroup.TEXTUREGROUP_UI
+        unreal.EditorAssetLibrary.save_loaded_asset(texture)
+        unreal.log("SUCCESS => {}".format(asset_path))
+    else:
+        unreal.log_error("FAILED => {}".format(texture_path))
+
+
 if male_animation_fbx_path != "":
     import_animation(male_animation_fbx_path, "Emote_{}_CMM".format(code_name))
     if male_animation_json_path != "":
-        anim_sequence_path = "{}/{}_Lobby_Animation".format("{}/{}/Animations".format(package_path, code_name), code_name)
+        anim_sequence_path = "{}/Animations/Emote_{}_CMM".format("{}/{}/".format(package_path, code_name), code_name)
         run_animation_importer(anim_sequence_path, male_animation_json_path)
 
 if female_animation_fbx_path != "":
     import_animation(female_animation_fbx_path, "Emote_{}_CMF".format(code_name))
     if female_animation_json_path != "":
-        anim_sequence_path = "{}/{}_Lobby_Animation".format("{}/{}/Animations".format(package_path, code_name), code_name)
+        anim_sequence_path = "{}/Animations/Emote_{}_CMF".format("{}/{}/".format(package_path, code_name), code_name)
         run_animation_importer(anim_sequence_path, female_animation_json_path)
 
 if sound_wav_path:
@@ -188,7 +211,7 @@ if sound_wav_path:
 
 for i in range(len(icon_textures)):
     if icon_textures[i] != "":
-        import_texture(icon_textures[i], "icon")
+        import_icon_texture(icon_textures[i])
 
 create_fake_eid()
 
