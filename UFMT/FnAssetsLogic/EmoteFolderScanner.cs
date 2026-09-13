@@ -61,7 +61,7 @@ namespace UFMT.FnAssetsLogic
             }
 
             Log.Success($"Found {Path.GetFileName(WavFilePaths[0])} in Sound folder");
-            return (true, Path.GetFileName(SoundFolderPath));
+            return (true, Path.GetFileName(WavFilePaths[0]));
         }
     }
 }
