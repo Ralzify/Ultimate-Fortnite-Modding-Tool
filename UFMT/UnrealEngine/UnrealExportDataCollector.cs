@@ -6,12 +6,13 @@ using System.Collections.ObjectModel;
 using Microsoft.UI.Xaml;
 using UFMT.FnAssets;
 using UFMT.UI;
+using Microsoft.UI.Composition;
 
 namespace UFMT.UnrealEngine
 {
-    internal static class UnrealExportSkinDataCollector
+    internal static class UnrealExportDataCollector
     {
-        internal static UnrealExportSkinData CollectData(string smallIcon, string largeIcon, ObservableCollection<Material> materials, string texturesPath, bool manuallySwizzleMaterials, string sourcePath, 
+        internal static UnrealExportSkinData CollectSkinData(string smallIcon, string largeIcon, ObservableCollection<Material> materials, string texturesPath, bool manuallySwizzleMaterials, string sourcePath, 
         string lobbyAnimationFbx, string lobbyAnimationJson, List<CharacterPart> characterParts, string skinGender, string codename, string CID, string ueSkinsPackagePath)
         {
             List<string> meshNames = new();
@@ -63,6 +64,29 @@ namespace UFMT.UnrealEngine
                 UeSkinsPackagePath = ueSkinsPackagePath
             };
 
+            return unrealData;
+        }
+
+        internal static UnrealExportEmoteData CollectEmoteData(EmoteData currentEmote, string emotePackagePath)
+        {
+            var unrealData = new UnrealExportEmoteData()
+            {
+                MaleAnimationFbxPath = Path.Combine(currentEmote.SourcePath, "Fbx", "Animations", "Male", currentEmote.MaleAnimationFbx),
+                MaleAnimationJsonPath = Path.Combine(currentEmote.AnimationsPath, "Male", currentEmote.MaleAnimationJson),
+                MaleAnimationLength = currentEmote.MaleAnimationLength,
+                FemaleAnimationFbxPath = Path.Combine(currentEmote.SourcePath, "Fbx", "Animations", "Female", currentEmote.FemaleAnimationFbx),
+                FemaleAnimationJsonPath = Path.Combine(currentEmote.AnimationsPath, "Female", currentEmote.FemaleAnimationJson),
+                FemaleAnimationLength = currentEmote.FemaleAnimationLength,
+                SoundWavPath = Path.Combine(currentEmote.SoundPath, currentEmote.SoundWav),
+                SoundWavCompressionQuality = currentEmote.SoundWavCompressionQuality,
+                IconTexturePaths = [Path.Combine(currentEmote.IconsPath, currentEmote.SmallIcon), Path.Combine(currentEmote.IconsPath, currentEmote.LargeIcon)],
+                Codename = currentEmote.Codename,
+                EID = currentEmote.EID,
+                UeEmotesPackagePath = emotePackagePath
+            };
+
+            if (currentEmote.MaleAnimationJson == string.Empty) unrealData.MaleAnimationJsonPath = string.Empty;
+            if (currentEmote.FemaleAnimationJson == string.Empty) unrealData.FemaleAnimationJsonPath = string.Empty;
             return unrealData;
         }
     }
