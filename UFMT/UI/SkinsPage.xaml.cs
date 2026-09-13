@@ -267,32 +267,32 @@ namespace UFMT.UI
             string exportUeProjectPath = App.Settings.UeProjectPath;
             string exportUeExecutablePath = App.Settings.UeExecutablePath;
             string ueSkinsPackagePath = App.Settings.UeSkinsPackagePath;
-            string ueSkinsOsPath = ueSkinsPackagePath.Substring(6, ueSkinsPackagePath.Length - 6).Replace("/", "\\");
+            string ueSkinsOsPath = ueSkinsPackagePath.Substring(6, ueSkinsPackagePath.Length - 6).Replace("/", "\\"); //Remove /Game/ at the start and replace / with \
 
             if (!SkinValidator.ValidateBeforeExport(exportUeVer.Name, exportSkin.Gender, exportSkin.Name, exportSkin.Description, exportSkin.CID)) return;
             if (!await FbxConverter.ConvertPskToFbx(exportSkin.CharacterParts, exportSkin.SourcePath, exportSkin.Codename)) return;
 
-            var (isAnimValid, lobbyAnimationFbx, lobbyAnimationLength) =
-            await FbxConverter.ConvertPsaToFbx(Path.Combine(exportSkin.LobbyAnimationFolderPath, $"{exportSkin.LobbyAnimationPsa}.psa"), 
+            bool isAnimValid = await FbxConverter.ConvertPsaToFbx(Path.Combine(exportSkin.LobbyAnimationFolderPath, $"{exportSkin.LobbyAnimationPsa}.psa"), 
             Path.Combine(exportSkin.SourcePath, "Fbx", "Lobby_Animation", $"{exportSkin.Codename}_Lobby_Animation.fbx"));
             if (!isAnimValid) return;
-            exportSkin.LobbyAnimationFbx = lobbyAnimationFbx;
-            exportSkin.LobbyAnimationLength = lobbyAnimationLength;
+            exportSkin.LobbyAnimationFbx = $"{exportSkin.Codename}_Lobby_Animation";
+            exportSkin.LobbyAnimationLength = (float)PsaReader.GetAnimationLength(Path.Combine(exportSkin.LobbyAnimationFolderPath, $"{exportSkin.LobbyAnimationPsa}.psa")) / 30f;
             string cookedCodenamePath = Path.Combine(exportCookedAssetsPath, ueSkinsOsPath, exportSkin.Codename);
+            Log.Test($"Animation Length is {exportSkin.LobbyAnimationLength}");
 
             UnrealDependencySetup.CreateMissingFiles(exportUeProjectPath, exportSkin.Codename, exportUeVer.BaseHeadPath, cookedCodenamePath, exportUeVer.Name,
             exportUeVer.BaseHeadFileNames);
 
-            UnrealExportSkinData unrealData = UnrealExportSkinDataCollector.CollectData(exportSkin.SmallIcon, exportSkin.LargeIcon, exportSkin.Materials, exportSkin.TexturesPath,
+            UnrealExportSkinData unrealData = UnrealExportDataCollector.CollectSkinData(exportSkin.SmallIcon, exportSkin.LargeIcon, exportSkin.Materials, exportSkin.TexturesPath,
             exportFnVer.ManuallySwizzleMaterials, exportSkin.SourcePath, exportSkin.LobbyAnimationFbx, exportSkin.LobbyAnimationJson, exportSkin.CharacterParts,
             exportSkin.Gender, exportSkin.Codename, exportSkin.CID, ueSkinsPackagePath);
 
-
-            await UnrealProcessRunner.LaunchUnreal(unrealData, exportUeProjectPath, exportUeExecutablePath);
+            string jsonString = System.Text.Json.JsonSerializer.Serialize(unrealData, AppJsonContext.Default.UnrealExportSkinData);
+            await UnrealProcessRunner.LaunchUnreal(jsonString, exportUeProjectPath, exportUeExecutablePath, "skin");
             await UnrealProcessRunner.CookFiles(exportUeProjectPath, exportUeExecutablePath);
 
-            exportUeVer.FixRequiredFiles(Path.Combine
-            (cookedCodenamePath, "Animations", $"{exportSkin.Codename}_Lobby_Animation.uasset"), exportSkin.CharacterParts.Select
+            exportUeVer.FixRequiredFiles([Path.Combine
+            (cookedCodenamePath, "Animations", $"{exportSkin.Codename}_Lobby_Animation.uasset")], exportSkin.CharacterParts.Select
             (cp => Path.Combine(cookedCodenamePath, "Meshes", $"{Path.GetFileNameWithoutExtension(cp.FbxPath)}.uasset")).ToArray());
 
             AssetRegistryBuilder.CreateAssetRegistry(exportCookedAssetsPath, exportUeVer.Name, exportSkin.Path, exportOutputFnGamePath, ueSkinsPackagePath);
@@ -1332,5 +1332,6 @@ namespace UFMT.UI
 
     [JsonSerializable(typeof(BlenderExportData))]
     [JsonSerializable(typeof(UnrealExportSkinData))]
+    [JsonSerializable(typeof(UnrealExportEmoteData))]
     internal partial class AppJsonContext : JsonSerializerContext { }
 }
