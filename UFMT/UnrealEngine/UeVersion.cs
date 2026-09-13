@@ -19,7 +19,7 @@ namespace UFMT.UnrealEngine
 {
     public record class UeVersion
     {
-        public Action<string, string[]> FixRequiredFiles;
+        public Action<string[], string[]> FixRequiredFiles;
         public string BaseHeadPath = @"Content\Base\Head\Skeleton";
         public EngineVersion UassetApiEngineVer;
         public bool ReplaceCookedBaseHead = false;
@@ -32,7 +32,7 @@ namespace UFMT.UnrealEngine
     {
         public static UeVersion Ue4_26 = new UeVersion()
         {
-            FixRequiredFiles = (animationPath, meshesPaths) =>
+            FixRequiredFiles = (animationPaths, meshesPaths) =>
             {
                 foreach (string meshPath in meshesPaths)
                 {
@@ -205,42 +205,45 @@ namespace UFMT.UnrealEngine
         };
         public static UeVersion Ue4_25 = new UeVersion()
         {
-            FixRequiredFiles = (animationPath, meshesPaths) =>
+            FixRequiredFiles = (animationPaths, meshesPaths) =>
             {
-                if (!File.Exists(animationPath)) return;
+                foreach (string animationPath in animationPaths)
+                {
+                    if (!File.Exists(animationPath)) return;
 
-                UAsset asset = new UAsset(animationPath, EngineVersion.VER_UE4_25);
-                asset.SetEngineVersion(EngineVersion.VER_UE4_26);
+                    UAsset asset = new UAsset(animationPath, EngineVersion.VER_UE4_25);
+                    asset.SetEngineVersion(EngineVersion.VER_UE4_26);
 
-                Import packImport = new Import(
-                    "/Script/CoreUObject",
-                    "Package",
-                    new FPackageIndex(0),
-                    "/Engine/Animation/DefaultAnimCurveCompressionSettings",
-                    false,
-                    asset
-                );
-                asset.Imports.Add(packImport);
-                int packImportIndex = asset.Imports.Count;
+                    Import packImport = new Import(
+                        "/Script/CoreUObject",
+                        "Package",
+                        new FPackageIndex(0),
+                        "/Engine/Animation/DefaultAnimCurveCompressionSettings",
+                        false,
+                        asset
+                    );
+                    asset.Imports.Add(packImport);
+                    int packImportIndex = asset.Imports.Count;
 
-                Import objImport = new Import(
-                    "/Script/Engine",
-                    "AnimCurveCompressionSettings",
-                    new FPackageIndex(-packImportIndex),
-                    "DefaultAnimCurveCompressionSettings",
-                    false,
-                    asset
-                );
-                asset.Imports.Add(objImport);
-                int objImportIndex = asset.Imports.Count;
+                    Import objImport = new Import(
+                        "/Script/Engine",
+                        "AnimCurveCompressionSettings",
+                        new FPackageIndex(-packImportIndex),
+                        "DefaultAnimCurveCompressionSettings",
+                        false,
+                        asset
+                    );
+                    asset.Imports.Add(objImport);
+                    int objImportIndex = asset.Imports.Count;
 
-                var normalExport = (NormalExport)asset.Exports[0];
-                ObjectPropertyData curveProp = new ObjectPropertyData(new FName(asset, "CurveCompressionSettings"));
-                curveProp.Value = new FPackageIndex(-objImportIndex);
-                normalExport.Data.Add(curveProp);
+                    var normalExport = (NormalExport)asset.Exports[0];
+                    ObjectPropertyData curveProp = new ObjectPropertyData(new FName(asset, "CurveCompressionSettings"));
+                    curveProp.Value = new FPackageIndex(-objImportIndex);
+                    normalExport.Data.Add(curveProp);
 
-                asset.Write(animationPath);
-                Console.WriteLine("Fixed!");
+                    asset.Write(animationPath);
+                    Console.WriteLine("Fixed!");
+                }
             },
             UassetApiEngineVer = EngineVersion.VER_UE4_25,
             ReplaceCookedBaseHead = true,
@@ -248,7 +251,7 @@ namespace UFMT.UnrealEngine
         };
         public static UeVersion Ue4_26_Modded_14_30 = Ue4_25 with
         {
-            FixRequiredFiles = (animationPath, meshesPaths) => { }, //Nothing to fix 
+            FixRequiredFiles = (animationPaths, meshesPaths) => { }, //Nothing to fix 
             UassetApiEngineVer = EngineVersion.VER_UE4_26,
             Name = "UE_4.26_FnGameProj14.30",
             ReplaceCookedBaseHead = false,
@@ -256,7 +259,7 @@ namespace UFMT.UnrealEngine
     };
         public static UeVersion Ue4_22 = new()
         {
-            FixRequiredFiles = (animationPath, meshesPaths) =>
+            FixRequiredFiles = (animationPaths, meshesPaths) =>
             {
                 List<(int PrefixOffset, int Length, string FollowingString)> FindByteStreamCandidates(byte[] data)
                 {
@@ -333,60 +336,63 @@ namespace UFMT.UnrealEngine
                     return result;
                 }
 
-                if (!File.Exists(animationPath)) return;
-                try
+                foreach (string animationPath in animationPaths)
                 {
-                    string uexpPath = Path.ChangeExtension(animationPath, ".uexp");
-                    byte[] uasset = File.ReadAllBytes(animationPath);
-                    byte[] uexp = File.ReadAllBytes(uexpPath);
-                    Console.WriteLine($".uasset: {animationPath} ({uasset.Length} bytes)");
-                    Console.WriteLine($".uexp:   {uexpPath} ({uexp.Length} bytes)");
-                    Console.WriteLine();
-
-                    var candidates = FindByteStreamCandidates(uexp);
-                    if (candidates.Count == 0)
+                    if (!File.Exists(animationPath)) return;
+                    try
                     {
-                        Log.Warning("Could not find the correct offset in .uexp, the file might already be patched or invalid");
+                        string uexpPath = Path.ChangeExtension(animationPath, ".uexp");
+                        byte[] uasset = File.ReadAllBytes(animationPath);
+                        byte[] uexp = File.ReadAllBytes(uexpPath);
+                        Console.WriteLine($".uasset: {animationPath} ({uasset.Length} bytes)");
+                        Console.WriteLine($".uexp:   {uexpPath} ({uexp.Length} bytes)");
+                        Console.WriteLine();
+
+                        var candidates = FindByteStreamCandidates(uexp);
+                        if (candidates.Count == 0)
+                        {
+                            Log.Warning("Could not find the correct offset in .uexp, the file might already be patched or invalid");
+                            return;
+                        }
+
+                        var chosen = candidates.OrderByDescending(c => c.Length).First();
+                        Console.WriteLine($"Found {candidates.Count} CompressedByteStream candidate(s) in the .uexp:");
+                        foreach (var c in candidates)
+                        {
+                            string marker = c.Equals(chosen) ? "  <- chosen (largest)" : "";
+                            Console.WriteLine($"  offset {c.PrefixOffset}, length {c.Length}, string \"{c.FollowingString}\"{marker}");
+                        }
+
+                        int insertOffset = chosen.PrefixOffset + 4;
+                        Console.WriteLine($".uexp insertion offset: {insertOffset}");
+
+                        long targetUexpMinus4 = uexp.Length - 4L;
+                        long targetCombinedMinus4 = uasset.Length + uexp.Length - 4L;
+                        List<int> matchesA = FindInt64Matches(uasset, targetUexpMinus4);
+                        List<int> matchesB = FindInt64Matches(uasset, targetCombinedMinus4);
+
+                        if (matchesA.Count != 1 || matchesB.Count != 1)
+                        {
+                            Log.Warning("Could not find the correct offsets in .uasset, the file might already be patched or invalid");
+                            return;
+                        }
+
+                        int offsetA = matchesA[0];
+                        int offsetB = matchesB[0];
+
+                        byte[] patchedUexp = InsertZeros(uexp, insertOffset, 4);
+                        byte[] patchedUasset = (byte[])uasset.Clone();
+                        AddToInt64(patchedUasset, offsetA, 4);
+                        AddToInt64(patchedUasset, offsetB, 4);
+
+                        File.WriteAllBytes(animationPath, patchedUasset);
+                        File.WriteAllBytes(uexpPath, patchedUexp);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error: {ex.Message}");
                         return;
                     }
-
-                    var chosen = candidates.OrderByDescending(c => c.Length).First();
-                    Console.WriteLine($"Found {candidates.Count} CompressedByteStream candidate(s) in the .uexp:");
-                    foreach (var c in candidates)
-                    {
-                        string marker = c.Equals(chosen) ? "  <- chosen (largest)" : "";
-                        Console.WriteLine($"  offset {c.PrefixOffset}, length {c.Length}, string \"{c.FollowingString}\"{marker}");
-                    }
-
-                    int insertOffset = chosen.PrefixOffset + 4;
-                    Console.WriteLine($".uexp insertion offset: {insertOffset}");
-
-                    long targetUexpMinus4 = uexp.Length - 4L;
-                    long targetCombinedMinus4 = uasset.Length + uexp.Length - 4L;
-                    List<int> matchesA = FindInt64Matches(uasset, targetUexpMinus4);
-                    List<int> matchesB = FindInt64Matches(uasset, targetCombinedMinus4);
-
-                    if (matchesA.Count != 1 || matchesB.Count != 1)
-                    {
-                        Log.Warning("Could not find the correct offsets in .uasset, the file might already be patched or invalid");
-                        return;
-                    }
-
-                    int offsetA = matchesA[0];
-                    int offsetB = matchesB[0];
-
-                    byte[] patchedUexp = InsertZeros(uexp, insertOffset, 4);
-                    byte[] patchedUasset = (byte[])uasset.Clone();
-                    AddToInt64(patchedUasset, offsetA, 4);
-                    AddToInt64(patchedUasset, offsetB, 4);
-
-                    File.WriteAllBytes(animationPath, patchedUasset);
-                    File.WriteAllBytes(uexpPath, patchedUexp);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error: {ex.Message}");
-                    return;
                 }
             },
             UassetApiEngineVer = EngineVersion.VER_UE4_22,
@@ -395,7 +401,7 @@ namespace UFMT.UnrealEngine
         };
         public static UeVersion Ue4_23_Modded_8_51 = Ue4_22 with
         {
-            FixRequiredFiles = (animationPath, meshesPaths) => { },
+            FixRequiredFiles = (animationPaths, meshesPaths) => { },
             UassetApiEngineVer = EngineVersion.VER_UE4_23,
             ReplaceCookedBaseHead = false,
             Name = "UE_4.23_FnGameProj8.51",
@@ -403,7 +409,7 @@ namespace UFMT.UnrealEngine
         };
         public static UeVersion Ue4_23_Modded_9_10 = Ue4_22 with
         {
-            FixRequiredFiles = (animationPath, meshesPaths) => { },
+            FixRequiredFiles = (animationPaths, meshesPaths) => { },
             UassetApiEngineVer = EngineVersion.VER_UE4_23,
             ReplaceCookedBaseHead = false,
             Name = "UE_4.23_FnGameProj9.10",
@@ -419,14 +425,14 @@ namespace UFMT.UnrealEngine
         };
         public static UeVersion Ue4_25_Modded_12_41 = new UeVersion
         {
-            FixRequiredFiles = (animationPath, meshes) => {},
+            FixRequiredFiles = (animationPaths, meshes) => {},
             UassetApiEngineVer = EngineVersion.VER_UE4_24,
             Name = "UE_4.25_FnGameProj12.41",
             ReplaceDefaultEngineIni = false
         };
         public static UeVersion Ue4_24 = Ue4_25_Modded_12_41 with
         {
-            FixRequiredFiles = (animationPath, meshes) => { },
+            FixRequiredFiles = (animationPaths, meshes) => { },
             BaseHeadPath = @"Content\Base\Head\Skeleton",
             UassetApiEngineVer = EngineVersion.VER_UE4_24,
             ReplaceCookedBaseHead = false,
