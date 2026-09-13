@@ -12,14 +12,15 @@ namespace UFMT.UnrealEngine
     internal static class UnrealProcessRunner
     {
         private static string SkinPythonScriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "PythonScripts", "UE_Import_Skin.py").Replace("\\", "/");
-        internal static async Task LaunchUnreal(UnrealExportSkinData unrealData, string ueProjectPath, string ueExecutablePath)
+        private static string EmotePythonScriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "PythonScripts", "UE_Import_Emote.py").Replace("\\", "/");
+        internal static async Task LaunchUnreal(string unrealDataInJsonString, string ueProjectPath, string ueExecutablePath, string cosmeticType)
         {
-            string jsonString = System.Text.Json.JsonSerializer.Serialize(unrealData, AppJsonContext.Default.UnrealExportSkinData);
             string tempJsonPath = Path.Combine(Path.GetTempPath(), "ue_import_data.json");
-            File.WriteAllText(tempJsonPath, jsonString, new System.Text.UTF8Encoding(false));
+            File.WriteAllText(tempJsonPath, unrealDataInJsonString, new System.Text.UTF8Encoding(false));
             Log.Test($"tempJsonPath is {tempJsonPath}");
 
-            string arguments = $"\"{ueProjectPath}\" -run=PythonScriptCommandlet -script=\"{SkinPythonScriptPath}\" -NullRHI -NoWindow -Silent";
+            string scriptPath = cosmeticType == "skin" ? SkinPythonScriptPath : EmotePythonScriptPath;
+            string arguments = $"\"{ueProjectPath}\" -run=PythonScriptCommandlet -script=\"{scriptPath}\" -NullRHI -NoWindow -Silent";
 
             Console.WriteLine($"Launching UE with args: {arguments}");
 
