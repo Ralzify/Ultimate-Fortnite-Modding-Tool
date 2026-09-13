@@ -69,7 +69,7 @@ namespace UFMT.Blender
             return true;
         }
 
-        internal static async Task<(bool isValid, string FbxFileNameWithoutExtension, float AnimationLength)> ConvertPsaToFbx
+        internal static async Task<bool> ConvertPsaToFbx
         (string psaFilePath, string fbxFileExportPath)
         {
             float animationLength = 0f;
@@ -111,8 +111,7 @@ namespace UFMT.Blender
                 }
             });
             Log.Success($"Successfully converted {Path.GetFileName(psaFilePath)} to {Path.GetFileName(fbxFileExportPath)}");
-            return (true, Path.GetFileNameWithoutExtension(fbxFileExportPath), animationLength);
+            return true;
         }
-
     }
 }
