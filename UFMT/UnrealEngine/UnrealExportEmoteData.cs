@@ -10,13 +10,13 @@ namespace UFMT.UnrealEngine
     {
         public string MaleAnimationFbxPath { get; set; }
         public string MaleAnimationJsonPath { get; set; }
-        public float MaleAnimationLength { get; set; }
+        public double MaleAnimationLength { get; set; }
         public string FemaleAnimationFbxPath { get; set; }
         public string FemaleAnimationJsonPath { get; set; }
-        public float FemaleAnimationLength { get; set; }
+        public double FemaleAnimationLength { get; set; }
         public string SoundWavPath { get; set; }
         public int SoundWavCompressionQuality { get; set; }
-        public string IconTexturePaths { get; set; }
+        public string[] IconTexturePaths { get; set; }
         public string Codename { get; set; }
         public string EID { get; set; } = string.Empty;
         public string UeEmotesPackagePath { get; set; }
