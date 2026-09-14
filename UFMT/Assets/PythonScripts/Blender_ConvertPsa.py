@@ -21,13 +21,7 @@ if armature:
         action = bpy.data.actions[-1]
         armature.animation_data.action = action
 
-        end_frame = int(action.frame_range[1])
-        bpy.context.scene.frame_end = end_frame
-
-        # Write to a temp file next to the export
-        meta_path = export_path + ".meta"
-        with open(meta_path, "w") as f:
-            f.write(str(end_frame))
+        bpy.context.scene.frame_end = int(action.frame_range[1])
 
     bpy.ops.better_export.fbx(
         filepath=export_path,
@@ -37,6 +31,7 @@ if armature:
     )
     
 else:
-    desktop = os.path.join(os.path.expanduser("~"), "Desktop")
-    with open(os.path.join(desktop, "error.txt"), "w") as f:
+    log_dir = os.path.join(os.getenv("LOCALAPPDATA"), "UFMT")
+    os.makedirs(log_dir, exist_ok=True)
+    with open(os.path.join(log_dir, "python_psa_to_fbx_error.txt"), "w") as f:
         f.write("Error: Armature not found in the template .blend file!")

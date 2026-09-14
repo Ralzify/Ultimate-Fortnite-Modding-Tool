@@ -1,5 +1,4 @@
-﻿#pragma warning disable
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -72,7 +71,6 @@ namespace UFMT.Blender
         internal static async Task<bool> ConvertPsaToFbx
         (string psaFilePath, string fbxFileExportPath)
         {
-            float animationLength = 0f;
             Console.WriteLine($"Converting {Path.GetFileName(psaFilePath)} to {Path.GetFileName(fbxFileExportPath)}");
             await Task.Run(() =>
             {
@@ -97,17 +95,6 @@ namespace UFMT.Blender
                     var stderrTask = Task.Run(() => blender.StandardError.ReadToEnd());
                     blender.WaitForExit();
                     Task.WhenAll(stdoutTask, stderrTask).Wait();
-                }
-
-                string metaPath = fbxFileExportPath + ".meta";
-                if (File.Exists(metaPath))
-                {
-                    string content = File.ReadAllText(metaPath).Trim();
-                    if (int.TryParse(content, out int animLength))
-                    {
-                        animationLength = (float)animLength / 30; //Divide the animation length by 30 since it's in 30fps
-                    }
-                    File.Delete(metaPath);
                 }
             });
             Log.Success($"Successfully converted {Path.GetFileName(psaFilePath)} to {Path.GetFileName(fbxFileExportPath)}");
