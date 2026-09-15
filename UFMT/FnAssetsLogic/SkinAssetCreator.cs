@@ -304,8 +304,15 @@ namespace UFMT.FnAssets
             var AnimEndTime = (FloatPropertyData)AnimSegments2.Value[3];
             AnimEndTime.Value = (float)Math.Round(lobbyAnimationLength, 5);
             Console.WriteLine($"Changed the animation length in {codename}_Idle_Montage to {Math.Round(lobbyAnimationLength, 5)}");
-            if (string.IsNullOrEmpty(lobbyAnimationJson)) idleAnimationExport0.Data.RemoveAt(5); // Remove DisableFaceOverride if no .json is provided
-                                                                                                             // since there is no way to get the idle pose's facial animations
+
+            if (string.IsNullOrEmpty(lobbyAnimationJson)) 
+            {
+                var rawCurveData = (StructPropertyData)idleAnimationExport0["RawCurveData"];
+                var floatCurves = (ArrayPropertyData)rawCurveData["FloatCurves"];
+                var curveList = floatCurves.Value.ToList();
+                curveList.RemoveAt(2);
+                floatCurves.Value = curveList.ToArray();
+            }
             currentIdleAnimation.Write(idleAnimationUassetPath);
             Log.Success($"Successfuly edited {codename}_Idle_Montage.uasset");
         }
