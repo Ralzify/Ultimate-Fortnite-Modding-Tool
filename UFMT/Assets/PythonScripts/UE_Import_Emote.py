@@ -197,13 +197,13 @@ def import_icon_texture(texture_path):
 if male_animation_fbx_path != "":
     import_animation(male_animation_fbx_path, "Emote_{}_CMM".format(code_name))
     if male_animation_json_path != "":
-        anim_sequence_path = "{}/Animations/Emote_{}_CMM".format("{}/{}/".format(package_path, code_name), code_name)
+        anim_sequence_path = "{}/Animations/Emote_{}_CMM".format("{}/{}".format(package_path, code_name), code_name)
         run_animation_importer(anim_sequence_path, male_animation_json_path)
 
 if female_animation_fbx_path != "":
     import_animation(female_animation_fbx_path, "Emote_{}_CMF".format(code_name))
     if female_animation_json_path != "":
-        anim_sequence_path = "{}/Animations/Emote_{}_CMF".format("{}/{}/".format(package_path, code_name), code_name)
+        anim_sequence_path = "{}/Animations/Emote_{}_CMF".format("{}/{}".format(package_path, code_name), code_name)
         run_animation_importer(anim_sequence_path, female_animation_json_path)
 
 if sound_wav_path:
