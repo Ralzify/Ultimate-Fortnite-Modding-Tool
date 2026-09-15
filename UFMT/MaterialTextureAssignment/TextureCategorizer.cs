@@ -37,9 +37,9 @@ namespace UFMT.MaterialTextureAssignment
 
             if (cosmeticType == "skin")
             {
-                largeIcon = textures.FirstOrDefault(tex => (tex.ToLower().StartsWith("t-icon") || tex.ToLower().StartsWith("t_icon")) &&
+                largeIcon = textures.FirstOrDefault(tex => (tex.ToLower().StartsWith("t-soldier") || tex.ToLower().StartsWith("t_soldier")) &&
                 (tex.ToLower().EndsWith("-l") || tex.ToLower().EndsWith("_l")));
-                smallIcon = textures.FirstOrDefault(tex => (tex.ToLower().StartsWith("t-icon") || tex.ToLower().StartsWith("t_icon")) &&
+                smallIcon = textures.FirstOrDefault(tex => (tex.ToLower().StartsWith("t-soldier") || tex.ToLower().StartsWith("t_soldier")) &&
                 !tex.ToLower().EndsWith("-l") && !tex.ToLower().EndsWith("_l"));
             }
             else if (cosmeticType == "emote")
