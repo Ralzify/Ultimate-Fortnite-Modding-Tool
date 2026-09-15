@@ -16,6 +16,7 @@ using UAssetAPI.UnrealTypes;
 using UFMT.Core;
 using UFMT.UI;
 using UFMT.UnrealEngine;
+using WinRT.Interop;
 
 namespace UFMT.FnAssets
 {
@@ -46,7 +47,6 @@ namespace UFMT.FnAssets
 
             byte[] montageUassetBase64 = TemplateLoader.GetEmbeddedFile(fnVersion.Name, "CookedUeAssets", "EmoteMontage.uasset");
             byte[] montageUexpBase64 = TemplateLoader.GetEmbeddedFile(fnVersion.Name, "CookedUeAssets", "EmoteMontage.uexp");
-
 
             File.WriteAllBytes(animationMontageUassetPath, montageUassetBase64);
             File.WriteAllBytes(Path.ChangeExtension(animationMontageUassetPath, ".uexp"), montageUexpBase64);
@@ -101,8 +101,13 @@ namespace UFMT.FnAssets
             holsterWeaponNotifyEndLinkLinkValue.Value = animationLength;
 
             var importData = animationMontageAsset.Imports;
-            importData[2].ObjectName.Value.Value = montageName;
-            importData[9].ObjectName.Value.Value = $"{ueEmotesPackagePath}/{codename}/{animationName}";
+            importData[2].ObjectName.Value.Value = animationName;
+            importData[9].ObjectName.Value.Value = $"{ueEmotesPackagePath}/{codename}/Animations/{animationName}";
+            importData[10].ObjectName.Value.Value = $"{ueEmotesPackagePath}/{codename}/Sound/SC_EmoteMusic3P_{codename}";
+            importData[11].ObjectName.Value.Value = $"{ueEmotesPackagePath}/{codename}/Sound/SC_EmoteMusic_{codename}";
+            importData[15].ObjectName.Value.Value = $"SC_EmoteMusic3P_{codename}";
+            importData[16].ObjectName.Value.Value = $"SC_EmoteMusic_{codename}";
+
 
             animationMontageAsset.Write(animationMontageUassetPath);
             Log.Success($"Succesfully edited {Path.GetFileNameWithoutExtension(animationMontageUassetPath)}");
@@ -155,12 +160,71 @@ namespace UFMT.FnAssets
 
             export1 = (NormalExport)exportData[1];
             soundWaveAssetPtr = (SoftObjectPropertyData)export1["SoundWaveAssetPtr"];
-            soundWaveAssetPtr.Value.AssetPath.AssetName.Value.Value = $"{ueEmotesPackagePath}/{codename}/{codename}_Sound.{codename}_Sound";
+            soundWaveAssetPtr.Value.AssetPath.AssetName.Value.Value = $"{ueEmotesPackagePath}/{codename}/Sound/{codename}_Sound.{codename}_Sound";
 
             importData = soundCue3PAsset.Imports;
-            importData[5].ObjectName.Value.Value = $"{ueEmotesPackagePath}/{codename}/{codename}_Sound";
+            importData[5].ObjectName.Value.Value = $"{ueEmotesPackagePath}/{codename}/Sound/{codename}_Sound";
             importData[12].ObjectName.Value.Value = $"{codename}_Sound";
             soundCue3PAsset.Write(soundCue3PUassetPath);
+        }
+
+        internal static void CreateEid(string OutputFnGamePath, FnVersion fnVersion, UeVersion ueVersion, string ueEmotesPackagePath, string codename, 
+        string eid, string name, string description, string rarity)
+        {
+            string eidUassetName = $"{eid}.uasset";
+            string eidUassetPath = Path.Combine(OutputFnGamePath, "Content", "Athena", "Items", "Cosmetics", "Dances", eidUassetName);
+            if (!Path.Exists(Path.GetDirectoryName(eidUassetPath))) Directory.CreateDirectory(Path.GetDirectoryName(eidUassetPath));
+
+            byte[] eidUassetBase64 = TemplateLoader.GetEmbeddedFile(fnVersion.Name, "CookedUeAssets", "Eid.uasset");
+            byte[] eidUexpBase64 = TemplateLoader.GetEmbeddedFile(fnVersion.Name, "CookedUeAssets", "Eid.uexp");
+
+            File.WriteAllBytes(eidUassetPath, eidUassetBase64);
+            File.WriteAllBytes(Path.ChangeExtension(eidUassetPath, ".uexp"), eidUexpBase64);
+
+            var eidAsset = new UAsset(eidUassetPath, ueVersion.UassetApiEngineVer);
+            var exportData = eidAsset.Exports;
+            var export0 = (NormalExport)exportData[0];
+
+            export0.ObjectName.Value.Value = eid;
+            var animation = (SoftObjectPropertyData)export0["Animation"];
+            var animationFemaleOverride = (SoftObjectPropertyData)export0["AnimationFemaleOverride"];
+            animation.Value.AssetPath.AssetName.Value.Value = $"{ueEmotesPackagePath}/{codename}/Animations/Emote_{codename}_CMM_M.Emote_{codename}_CMM_M";
+            animationFemaleOverride.Value.AssetPath.AssetName.Value.Value = $"{ueEmotesPackagePath}/{codename}/Animations/Emote_{codename}_CMF_M.Emote_{codename}_CMF_M";
+
+            var smallPreviewImage = (SoftObjectPropertyData)export0["SmallPreviewImage"];
+            var largePreviewImage = (SoftObjectPropertyData)export0["LargePreviewImage"];
+            smallPreviewImage.Value.AssetPath.AssetName.Value.Value = $"{ueEmotesPackagePath}/{codename}/UI/T-Icon-Emotes-E-{codename}.T-Icon-Emotes-E-{codename}";
+            largePreviewImage.Value.AssetPath.AssetName.Value.Value = $"{ueEmotesPackagePath}/{codename}/UI/T-Icon-Emotes-E-{codename}-L.T-Icon-Emotes-E-{codename}-L";
+
+            ((TextPropertyData)export0["DisplayName"]).CultureInvariantString.Value = name;
+            Console.WriteLine($"Changed the DisplayName in {eid} to {name}");
+            ((TextPropertyData)export0["Description"]).CultureInvariantString.Value = description;
+            Console.WriteLine($"Changed the Description in {eid} to {description}");
+            string displayNameKey = Guid.NewGuid().ToString("N").ToUpper(); //Generates a new key for the display name since multiple display names can't use the same key
+            string descriptionKey = Guid.NewGuid().ToString("N").ToUpper();
+            ((TextPropertyData)export0["DisplayName"]).Value.Value = displayNameKey;
+            ((TextPropertyData)export0["Description"]).Value.Value = descriptionKey;
+            export0.Data.RemoveAt(7); //Removes gameplay tags
+
+            var rarityProperty = (EnumPropertyData)export0["Rarity"];
+            rarityProperty.Value.Value.Value = $"EFortRarity::{rarity}";
+            if (rarity == "Uncommon") export0.Data.RemoveAt(3); //Removes the rarity property since no rarity is equal to uncommon in fn
+            else if (rarity == "Unattainable (Impossible T7)") rarityProperty.Value.Value.Value = $"EFortRarity::Unattainable";
+            if ((fnVersion.Name == "8.51-9.10" || fnVersion.Name == "9.41") && rarity != "Uncommon")
+            {
+                string rarityCodename = "";
+                if (rarity == "Common") rarityCodename = "Handmade";
+                else if (rarity == "Rare") rarityCodename = "Sturdy";
+                else if (rarity == "Epic") rarityCodename = "Quality";
+                else if (rarity == "Legendary") rarityCodename = "Fine";
+                else if (rarity == "Mythic") rarityCodename = "Elegant";
+                else if (rarity == "Transcendent") rarityCodename = "Masterwork";
+                else if (rarity == "Unattainable (Impossible T7)") rarityCodename = "Epic";
+                rarityProperty.Value.Value.Value = $"EFortRarity::{rarityCodename}";
+            }
+
+            Console.WriteLine($"Changed the Rarity in {eid} to {rarity}");
+            eidAsset.Write(eidUassetPath);
         }
     }
 }
