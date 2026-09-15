@@ -16,7 +16,6 @@ using UAssetAPI.UnrealTypes;
 using UFMT.Core;
 using UFMT.UI;
 using UFMT.UnrealEngine;
-using WinRT.Interop;
 
 namespace UFMT.FnAssets
 {
@@ -40,7 +39,7 @@ namespace UFMT.FnAssets
         }
 
         internal static void CreateAnimationMontage(string OutputFnGameCurrentEmotePath, string animationName, float animationLength,
-        FnVersion fnVersion, UeVersion ueVersion, string ueEmotesPackagePath, string codename)
+        FnVersion fnVersion, UeVersion ueVersion, string ueEmotesPackagePath, string codename, string animationJson)
         {
             string montageName = $"{animationName}_M.uasset";
             string animationMontageUassetPath = Path.Combine(OutputFnGameCurrentEmotePath, "Animations", montageName);
@@ -99,6 +98,16 @@ namespace UFMT.FnAssets
             var holsterWeaponNotifyEndLinkLinkValue = (FloatPropertyData)holsterWeaponNotifyEndLink["LinkValue"];
             holsterWeaponNotifyEndLinkSegmentLength.Value = animationLength;
             holsterWeaponNotifyEndLinkLinkValue.Value = animationLength;
+
+            var rawCurveData = (StructPropertyData)export0["RawCurveData"];
+            var floatCurves = (ArrayPropertyData)rawCurveData.Value[0];
+            if (animationJson == string.Empty)
+            {
+                // Remove DisableFaceOverride if no .json is provided since there is no way to get the animation's facial animations
+                var curveList = floatCurves.Value.ToList();
+                curveList.RemoveAt(2);
+                floatCurves.Value = curveList.ToArray();
+            }
 
             var importData = animationMontageAsset.Imports;
             importData[2].ObjectName.Value.Value = animationName;
