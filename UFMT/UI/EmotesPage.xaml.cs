@@ -110,6 +110,11 @@ namespace UFMT.UI
             }
 
             CurrentEmote = new EmoteData();
+            if (!App.Settings.UeEmotesPackagePath.StartsWith("/Game/"))
+            {
+                Log.Error($"\"{App.Settings.UeEmotesPackagePath}\" is not a valid Unreal package path, it must start with /Game/");
+                return;
+            }
 
             AppSettings.SetValue("CurrentEmotePath", (sender as TextBox).Text);
             if (!EmoteValidator.ValidateAfterPathChange((sender as TextBox)?.Text, CurrentEmote)) return;
@@ -392,11 +397,14 @@ namespace UFMT.UI
         }
         private async void ExportButton_Click(object sender, RoutedEventArgs e)
         {
+            string ueEmotesPackagePath = App.Settings.UeEmotesPackagePath;
+            string ueEmotesOsPath = ueEmotesPackagePath.Substring(6, ueEmotesPackagePath.Length - 6).Replace("/", "\\"); //Remove /Game/ at the start and replace / with \
+
             CurrentEmote.MaleAnimationFbx = $"Emote_{CurrentEmote.Codename}_CMM.fbx";
             CurrentEmote.FemaleAnimationFbx = $"Emote_{CurrentEmote.Codename}_CMF.fbx";
             PrintAllValues(CurrentEmote);
-            string cookedCurrentEmotePath = Path.Combine(CookedAssetsPath, "CustomEmotes", CurrentEmote.Codename);
-            string OutputFnGameCurrentEmoteFolder = Path.Combine(OutputFnGamePath, "Content", "CustomEmotes", CurrentEmote.Codename);
+            string cookedCurrentEmotePath = Path.Combine(CookedAssetsPath, ueEmotesOsPath, CurrentEmote.Codename);
+            string OutputFnGameCurrentEmoteFolder = Path.Combine(OutputFnGamePath, "Content", ueEmotesOsPath, CurrentEmote.Codename);
 
             await FbxConverter.ConvertPsaToFbx(Path.Combine(CurrentEmote.SourcePath, "Animations", CurrentEmote.MaleAnimationPsa),
             Path.Combine(CurrentEmote.SourcePath, "Fbx", "Animations", CurrentEmote.MaleAnimationFbx));
@@ -404,7 +412,7 @@ namespace UFMT.UI
             await FbxConverter.ConvertPsaToFbx(Path.Combine(CurrentEmote.SourcePath, "Animations", CurrentEmote.FemaleAnimationPsa),
             Path.Combine(CurrentEmote.SourcePath, "Fbx", "Animations", CurrentEmote.FemaleAnimationFbx));
 
-            UnrealExportEmoteData unrealData = UnrealExportDataCollector.CollectEmoteData(CurrentEmote, "/Game/CustomEmotes");
+            UnrealExportEmoteData unrealData = UnrealExportDataCollector.CollectEmoteData(CurrentEmote, ueEmotesPackagePath);
 
             Log.Test(unrealData.MaleAnimationFbxPath);
             Log.Test(unrealData.Codename);
@@ -415,17 +423,17 @@ namespace UFMT.UI
             await UnrealProcessRunner.CookFiles(App.Settings.UeProjectPath, App.Settings.UeExecutablePath);
             CurrentUeVersion.FixRequiredFiles([Path.Combine(cookedCurrentEmotePath, "Animations", $"{Path.GetFileNameWithoutExtension(CurrentEmote.MaleAnimationFbx)}.uasset"),
             Path.Combine(cookedCurrentEmotePath, "Animations", $"{Path.GetFileNameWithoutExtension(CurrentEmote.FemaleAnimationFbx)}.uasset")], [string.Empty]);
-
-            AssetRegistryBuilder.CreateAssetRegistry(CookedAssetsPath, CurrentUeVersion.Name, OutputFnGamePath, App.Settings.UeSkinsPackagePath, "/Game/CustomEmotes", CurrentEmote.Path);
+            AssetRegistryBuilder.CreateAssetRegistry(CookedAssetsPath, CurrentUeVersion.Name, OutputFnGamePath, App.Settings.UeSkinsPackagePath, ueEmotesPackagePath, CurrentEmote.Path);
             EmoteAssetCreator.CopyFilesFromUe(OutputFnGameCurrentEmoteFolder, new DirectoryInfo(cookedCurrentEmotePath));
             EmoteAssetCreator.CreateAnimationMontage(OutputFnGameCurrentEmoteFolder, Path.GetFileNameWithoutExtension(CurrentEmote.MaleAnimationFbx),
-            (float)CurrentEmote.MaleAnimationLength, CurrentFnVersion, CurrentUeVersion, "/Game/CustomEmotes", CurrentEmote.Codename, CurrentEmote.MaleAnimationJson);
+            (float)CurrentEmote.MaleAnimationLength, CurrentFnVersion, CurrentUeVersion, ueEmotesPackagePath, CurrentEmote.Codename, CurrentEmote.MaleAnimationJson, 
+            (float)CurrentEmote.LoopSectionStart);
             EmoteAssetCreator.CreateAnimationMontage(OutputFnGameCurrentEmoteFolder, Path.GetFileNameWithoutExtension(CurrentEmote.FemaleAnimationFbx),
-            (float)CurrentEmote.FemaleAnimationLength, CurrentFnVersion, CurrentUeVersion, "/Game/CustomEmotes", CurrentEmote.Codename, CurrentEmote.FemaleAnimationJson);
-            EmoteAssetCreator.CreateSoundCues(OutputFnGameCurrentEmoteFolder, CurrentFnVersion, CurrentUeVersion, "/Game/CustomEmotes", CurrentEmote.Codename);
-            EmoteAssetCreator.CreateEid(OutputFnGamePath, CurrentFnVersion, CurrentUeVersion, "/Game/CustomEmotes", CurrentEmote.Codename,
-            CurrentEmote.EID, CurrentEmote.Name, CurrentEmote.Description, CurrentEmote.Rarity);
-
+            (float)CurrentEmote.FemaleAnimationLength, CurrentFnVersion, CurrentUeVersion, ueEmotesPackagePath, CurrentEmote.Codename, CurrentEmote.FemaleAnimationJson,
+            (float)CurrentEmote.LoopSectionStart);
+            EmoteAssetCreator.CreateSoundCues(OutputFnGameCurrentEmoteFolder, CurrentFnVersion, CurrentUeVersion, ueEmotesPackagePath, CurrentEmote.Codename);
+            EmoteAssetCreator.CreateEid(OutputFnGamePath, CurrentFnVersion, CurrentUeVersion, ueEmotesPackagePath, CurrentEmote.Codename,
+            CurrentEmote.EID, CurrentEmote.Name, CurrentEmote.Description, CurrentEmote.Rarity, CurrentEmote.Series);
             U4Pak.Pack(OutputFnGamePath, Path.Combine(Path.GetDirectoryName(OutputFnGamePath), $"z_{CurrentEmote.Codename}.pak"));
         }
         public static void PrintAllValues(EmoteData data)
@@ -557,6 +565,19 @@ namespace UFMT.UI
                 if (value != _maleAnimationLength)
                 {
                     _maleAnimationLength = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+        private double _loopSectionStart = 0;
+        public double LoopSectionStart
+        {
+            get => _loopSectionStart;
+            set
+            {
+                if (value != _loopSectionStart)
+                {
+                    _loopSectionStart = value;
                     OnPropertyChanged();
                 }
             }
