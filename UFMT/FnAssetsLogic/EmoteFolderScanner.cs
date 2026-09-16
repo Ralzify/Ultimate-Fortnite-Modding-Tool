@@ -13,70 +13,63 @@ namespace UFMT.FnAssetsLogic
 {
     internal class EmoteFolderScanner
     {
-        internal static (bool success, string maleAnimationPsaFileName, string femaleAnimationPsaFileName, string maleAnimationJsonFileName, 
-        string femaleAnimationJsonFileName)GetAnimationsData(string animationsFolderPath)
+        private static Func<string, string, (string maleAnim, string femaleAnim)>[] AnimationSortMethods = { CheckForCMMandCMF, CheckForMAndFEndings,
+        CheckForFemaleContaining, CheckForMaleCMMAndMissingCMF, CheckForFemaleCMFAndMissingCMM, CheckForMaleContaining, CheckForMaleMContainAndFemaleFInsteadOfMContain};
+
+        internal static (bool success, string maleAnimationPsaName, string femaleAnimationPsaName) GetAnimationPsaData(string animationsFolderPath)
         {
-            string maleAnimationFolderPath = Path.Combine(animationsFolderPath, "Male");
-            string femaleAnimationFolderPath = Path.Combine(animationsFolderPath, "Female");
 
-            string[] maleAnimationPsaFilePaths = Directory.GetFiles(maleAnimationFolderPath, "*.psa");
-            string[] femaleAnimationPsaFilePaths = Directory.GetFiles(femaleAnimationFolderPath, "*.psa");
+            string maleAnimation = null;
+            string femaleAnimation = null;
 
-            if (maleAnimationPsaFilePaths.Length > 1) 
+            string[] animationFiles = Directory.GetFiles(animationsFolderPath, "*.psa");
+            if (animationFiles.Length > 2)
             {
-                Log.Error($"Multiple .psa files found in \"{maleAnimationFolderPath}\"!");
-                return (false, null, null, null, null);
+                Log.Error($"Animations folder contains more than 2 .psa files!");
+                return (false, maleAnimation, femaleAnimation);
             }
 
-            if (femaleAnimationPsaFilePaths.Length > 1)
+            if (animationFiles.Length == 0)
             {
-                Log.Error($"Multiple .psa files found in \"{femaleAnimationFolderPath}\"!");
-                return (false, null, null, null, null);
+                Log.Error($"Animations folder doesn't contain any .psa files!");
+                return (false, maleAnimation, femaleAnimation);
             }
 
-            if (maleAnimationPsaFilePaths.Length == 0 && femaleAnimationPsaFilePaths.Length == 0)
+            string animation1 = Path.GetFileNameWithoutExtension(animationFiles[0]);
+
+            if (animationFiles.Length == 1)
             {
-                Log.Error("No animations found for the emote (no .psa files found in Male or Female animation folders)!");
-                return (false, null, null, null, null);
+                Console.WriteLine($"Only 1 .psa file found in Animations folder. Both genders will use the same animation.");
+                maleAnimation = animation1;
+                femaleAnimation = animation1;
+                return (true, maleAnimation, femaleAnimation);
             }
 
-            if (maleAnimationPsaFilePaths.Length == 0) Log.Warning($"No .psa files found in \"{maleAnimationFolderPath}\"");
+            string animation2 = Path.GetFileNameWithoutExtension(animationFiles[1]);
 
-            Log.Success($"Found {Path.GetFileName(maleAnimationPsaFilePaths[0])} in Male animation folder");
-            Log.Success($"Found {Path.GetFileName(femaleAnimationPsaFilePaths[0])} in Female animation folder");
+            foreach (Func<string, string, (string maleAnim, string femaleAnim)> method in AnimationSortMethods)
+            {
+                (maleAnimation, femaleAnimation) = method(animation1, animation2);
+                if (maleAnimation != null && femaleAnimation != null) return (true, maleAnimation, femaleAnimation);
 
-            string[] maleAnimationJsonFilePaths = Directory.GetFiles(maleAnimationFolderPath, "*.json");
-            string[] femaleAnimationJsonFilePaths = Directory.GetFiles(femaleAnimationFolderPath, "*.json");
-
-            if (maleAnimationJsonFilePaths.Length > 1)
-            {
-                Log.Error($"Multiple .json files in \"{maleAnimationFolderPath}\"!\nMake sure there is only 1 .json animation!");
-                return (false, null, null, null, null);
-            }
-            if (maleAnimationJsonFilePaths.Length != 0)
-            {
-                Log.Success($"Found {Path.GetFileName(maleAnimationJsonFilePaths[0])} in Male animation folder");
-            }
-            else
-            {
-                maleAnimationJsonFilePaths = [string.Empty];
-            }
-            if (femaleAnimationJsonFilePaths.Length > 1)
-            {
-                Log.Error($"Multiple .json files in \"{femaleAnimationFolderPath}\"!\nMake sure there is only 1 .json animation!");
-                return (false, null, null, null, null);
-            }
-            if (femaleAnimationJsonFilePaths.Length != 0)
-            {
-                Log.Success($"Found {Path.GetFileName(femaleAnimationJsonFilePaths[0])} in Female animation folder");
-            }
-            else
-            {
-                femaleAnimationJsonFilePaths = [string.Empty];
+                (maleAnimation, femaleAnimation) = method(animation2, animation1);
+                if (maleAnimation != null && femaleAnimation != null) return (true, maleAnimation, femaleAnimation);
             }
 
-            return (true, Path.GetFileName(maleAnimationPsaFilePaths[0]), Path.GetFileName(femaleAnimationPsaFilePaths[0]), Path.GetFileName(maleAnimationJsonFilePaths[0]),
-            Path.GetFileName(femaleAnimationJsonFilePaths[0]));
+            Log.Error($"Cannot determine male and female animations");
+            Console.WriteLine($"Animations were:");
+            Console.WriteLine($"UNKNOWN: {animation1}");
+            Console.WriteLine($"UNKNOWN: {animation2}");
+            return (false, maleAnimation, femaleAnimation);
+        }
+
+        internal static (string maleAnimationJson, string femaleAnimationJson) GetAnimationJsonData(string maleAnimationPsa, string femaleAnimationPsa, string animationsPath)
+        {
+            string maleJson = string.Empty;
+            string femaleJson = string.Empty;
+            if (File.Exists(Path.Combine(animationsPath, Path.ChangeExtension(maleAnimationPsa, ".json")))) maleJson = Path.ChangeExtension(maleAnimationPsa, ".json");
+            if (File.Exists(Path.Combine(animationsPath, Path.ChangeExtension(femaleAnimationPsa, ".json")))) femaleJson = Path.ChangeExtension(femaleAnimationPsa, ".json");
+            return (maleJson, femaleJson);
         }
 
         internal static (bool, string) GetSoundData(string SoundFolderPath)
@@ -95,6 +88,76 @@ namespace UFMT.FnAssetsLogic
 
             Log.Success($"Found {Path.GetFileName(WavFilePaths[0])} in Sound folder");
             return (true, Path.GetFileName(WavFilePaths[0]));
+        }
+
+        private static (string maleAnimation, string femaleAnimation) CheckForCMMandCMF(string animation1, string animation2)
+        {
+            if ((animation1.Contains("_CMM_") || animation1.EndsWith("_CMM")) && (animation2.Contains("_CMF_") || animation2.EndsWith("_CMF")))
+            {
+                Console.WriteLine($"Male animation contained CMM while female animation contained CMF");
+                return (animation1, animation2);
+            }
+            return (null, null);
+        }
+
+        private static (string maleAnimation, string femaleAnimation) CheckForMAndFEndings(string animation1, string animation2)
+        {
+            if (animation1.EndsWith("_M") && animation2.EndsWith("_F"))
+            {
+                Console.WriteLine($"Male animation ended with _M and female animation ended with _F");
+                return (animation1, animation2);
+            }
+            return (null, null);
+        }
+
+        private static (string maleAnimation, string femaleAnimation) CheckForFemaleContaining(string animation1, string animation2)
+        {
+            if (!animation1.Contains("Female") && animation2.Contains("Female"))
+            {
+                Console.WriteLine($"Female animation contained Female in it while the male animation didn't");
+                return (animation1, animation2);
+            }
+            return (null, null);
+        }
+
+        private static (string maleAnimation, string femaleAnimation) CheckForMaleCMMAndMissingCMF(string animation1, string animation2)
+        {
+            if ((animation2.Contains("_CMF_") || animation2.EndsWith("CMF")) && !animation1.Contains("_CMF_") && !animation1.EndsWith("CMF"))
+            {
+                Console.WriteLine($"Female animation contained CMF in it while the male animation didn't contain CMM in it");
+                return (animation1, animation2);
+            }
+            return (null, null);
+        }
+
+        private static (string maleAnimation, string femaleAnimation) CheckForFemaleCMFAndMissingCMM(string animation1, string animation2)
+        {
+            if ((animation1.Contains("_CMM_") || animation1.EndsWith("CMM")) && !animation2.Contains("_CMM_") && !animation2.EndsWith("CMM"))
+            {
+                Console.WriteLine($"Male animation contained CMM in it while the female animation didn't contain CMF in it");
+                return (animation1, animation2);
+            }
+            return (null, null);
+        }
+
+        private static (string maleAnimation, string femaleAnimation) CheckForMaleContaining(string animation1, string animation2)
+        {
+            if (!animation2.Contains("Male") && animation1.Contains("Male"))
+            {
+                Console.WriteLine($"Male animation contained Male in it while the female animation didn't");
+                return (animation1, animation2);
+            }
+            return (null, null);
+        }
+
+        private static (string maleAnimation, string femaleAnimation) CheckForMaleMContainAndFemaleFInsteadOfMContain(string animation1, string animation2)
+        {
+            if (animation1.Contains("_M_") && !animation2.Contains("_M_") && animation2.Contains("_F_") && !animation1.Contains("_F_"))
+            {
+                Console.WriteLine($"Male animation contained _M_ in it but not _F_ while female animation contained _F_ in it but not _M_");
+                return (animation1, animation2);
+            }
+            return (null, null);
         }
     }
 }

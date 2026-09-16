@@ -71,11 +71,11 @@ namespace UFMT.UnrealEngine
         {
             var unrealData = new UnrealExportEmoteData()
             {
-                MaleAnimationFbxPath = Path.Combine(currentEmote.SourcePath, "Fbx", "Animations", "Male", currentEmote.MaleAnimationFbx),
-                MaleAnimationJsonPath = Path.Combine(currentEmote.AnimationsPath, "Male", currentEmote.MaleAnimationJson),
+                MaleAnimationFbxPath = Path.Combine(currentEmote.SourcePath, "Fbx", "Animations", currentEmote.MaleAnimationFbx),
+                MaleAnimationJsonPath = Path.Combine(currentEmote.AnimationsPath, currentEmote.MaleAnimationJson),
                 MaleAnimationLength = currentEmote.MaleAnimationLength,
-                FemaleAnimationFbxPath = Path.Combine(currentEmote.SourcePath, "Fbx", "Animations", "Female", currentEmote.FemaleAnimationFbx),
-                FemaleAnimationJsonPath = Path.Combine(currentEmote.AnimationsPath, "Female", currentEmote.FemaleAnimationJson),
+                FemaleAnimationFbxPath = Path.Combine(currentEmote.SourcePath, "Fbx", "Animations", currentEmote.FemaleAnimationFbx),
+                FemaleAnimationJsonPath = Path.Combine(currentEmote.AnimationsPath, currentEmote.FemaleAnimationJson),
                 FemaleAnimationLength = currentEmote.FemaleAnimationLength,
                 SoundWavPath = Path.Combine(currentEmote.SoundPath, currentEmote.SoundWav),
                 SoundWavCompressionQuality = currentEmote.SoundWavCompressionQuality,
