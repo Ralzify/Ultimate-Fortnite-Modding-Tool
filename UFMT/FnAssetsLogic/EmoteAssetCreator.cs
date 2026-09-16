@@ -16,6 +16,7 @@ using UAssetAPI.UnrealTypes;
 using UFMT.Core;
 using UFMT.UI;
 using UFMT.UnrealEngine;
+using WinRT.Interop;
 
 namespace UFMT.FnAssets
 {
@@ -39,7 +40,7 @@ namespace UFMT.FnAssets
         }
 
         internal static void CreateAnimationMontage(string OutputFnGameCurrentEmotePath, string animationName, float animationLength,
-        FnVersion fnVersion, UeVersion ueVersion, string ueEmotesPackagePath, string codename, string animationJson)
+        FnVersion fnVersion, UeVersion ueVersion, string ueEmotesPackagePath, string codename, string animationJson, float loopSectionStart)
         {
             string montageName = $"{animationName}_M.uasset";
             string animationMontageUassetPath = Path.Combine(OutputFnGameCurrentEmotePath, "Animations", montageName);
@@ -64,8 +65,10 @@ namespace UFMT.FnAssets
             var loopCompositeSection = (StructPropertyData)compositeSections.Value[1];
             var defaultCompositeSectionSegmentLength = (FloatPropertyData)defaultCompositeSection["SegmentLength"];
             var loopCompositeSectionSegmentLength = (FloatPropertyData)loopCompositeSection["SegmentLength"];
+            var loopCompositeSectionLinkValue = (FloatPropertyData)loopCompositeSection["LinkValue"];
             defaultCompositeSectionSegmentLength.Value = animationLength;
             loopCompositeSectionSegmentLength.Value = animationLength;
+            loopCompositeSectionLinkValue.Value = loopSectionStart;
 
             var slotAnimTracks = (ArrayPropertyData)export0["SlotAnimTracks"];
             var slotAnimTracks2 = (StructPropertyData)slotAnimTracks.Value[0];
@@ -178,7 +181,7 @@ namespace UFMT.FnAssets
         }
 
         internal static void CreateEid(string OutputFnGamePath, FnVersion fnVersion, UeVersion ueVersion, string ueEmotesPackagePath, string codename, 
-        string eid, string name, string description, string rarity)
+        string eid, string name, string description, string rarity, string series)
         {
             string eidUassetName = $"{eid}.uasset";
             string eidUassetPath = Path.Combine(OutputFnGamePath, "Content", "Athena", "Items", "Cosmetics", "Dances", eidUassetName);
@@ -193,6 +196,7 @@ namespace UFMT.FnAssets
             var eidAsset = new UAsset(eidUassetPath, ueVersion.UassetApiEngineVer);
             var exportData = eidAsset.Exports;
             var export0 = (NormalExport)exportData[0];
+            var importData = eidAsset.Imports;
 
             export0.ObjectName.Value.Value = eid;
             var animation = (SoftObjectPropertyData)export0["Animation"];
@@ -214,6 +218,16 @@ namespace UFMT.FnAssets
             ((TextPropertyData)export0["DisplayName"]).Value.Value = displayNameKey;
             ((TextPropertyData)export0["Description"]).Value.Value = descriptionKey;
             export0.Data.RemoveAt(7); //Removes gameplay tags
+
+
+            if (series == "None") export0.Data.RemoveAt(10);
+            else
+            {
+                string seriesCodename = SkinAssetCreator.SeriesCodenames.GetValueOrDefault(series) ?? series;
+                importData[2].ObjectName.Value.Value = seriesCodename;
+                importData[3].ObjectName.Value.Value = $"/Game/Athena/Items/Cosmetics/Series/{seriesCodename}";
+                Console.WriteLine($"Changed the Series in {eid} to {series}");
+            }
 
             var rarityProperty = (EnumPropertyData)export0["Rarity"];
             rarityProperty.Value.Value.Value = $"EFortRarity::{rarity}";
