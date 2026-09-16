@@ -387,6 +387,7 @@ namespace UFMT.UnrealEngine
 
                         File.WriteAllBytes(animationPath, patchedUasset);
                         File.WriteAllBytes(uexpPath, patchedUexp);
+                        Console.WriteLine($"Patched {Path.GetFileNameWithoutExtension(animationPath)} (full path: {animationPath})");
                     }
                     catch (Exception ex)
                     {

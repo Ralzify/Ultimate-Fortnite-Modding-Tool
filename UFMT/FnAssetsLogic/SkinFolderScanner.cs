@@ -79,10 +79,7 @@ namespace UFMT.FnAssetsLogic
                 psaName = Path.GetFileNameWithoutExtension(lobbyAnimationFiles[0]);
                 Log.Success($"The lobby animation is {psaName}.psa");
             }
-            else
-            {
-                return (true, psaName, jsonName);
-            }
+            else return (true, psaName, jsonName);
 
             string[] lobbyAnimationJsonFiles = Directory.GetFiles(lobbyAnimationPath, "*.json");
             if (lobbyAnimationJsonFiles.Length > 1)

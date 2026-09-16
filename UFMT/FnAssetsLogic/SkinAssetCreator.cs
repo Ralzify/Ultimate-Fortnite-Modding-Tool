@@ -307,6 +307,7 @@ namespace UFMT.FnAssets
 
             if (string.IsNullOrEmpty(lobbyAnimationJson)) 
             {
+                // Remove DisableFaceOverride if no .json is provided since there is no way to get the animation's facial animations
                 var rawCurveData = (StructPropertyData)idleAnimationExport0["RawCurveData"];
                 var floatCurves = (ArrayPropertyData)rawCurveData["FloatCurves"];
                 var curveList = floatCurves.Value.ToList();
