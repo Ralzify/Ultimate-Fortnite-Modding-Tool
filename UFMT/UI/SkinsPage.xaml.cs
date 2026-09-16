@@ -109,6 +109,64 @@ namespace UFMT.UI
             seriesComboBox.Items.VectorChanged += SaveSeries;
         }
 
+        public void LoadContent()
+        {
+            CurrentFnVersion = FnVersionsData.FnVersions.GetValueOrDefault(App.Settings.FnVersion);
+            CurrentUeVersion = UeVersionsData.UeVersions.GetValueOrDefault(App.Settings.UeVersion);
+            if (App.Settings.FnVersion == "8.51-9.10" || App.Settings.FnVersion == "9.41")
+            {
+                Ch1PreviewViewBox.Visibility = Visibility.Visible;
+                Ch2PreviewViewBox.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                Ch1PreviewViewBox.Visibility = Visibility.Collapsed;
+                Ch2PreviewViewBox.Visibility = Visibility.Visible;
+            }
+            PhysicsImporterPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", $"PhysicsImporter_{CurrentUeVersion.Name}.zip");
+            Body = new CharacterPart
+            {
+                Type = "Body",
+            };
+            Head = new CharacterPart
+            {
+                Type = "Head",
+            };
+            FaceAcc = new CharacterPart
+            {
+                Type = "Faceacc",
+            };
+            Hat = new CharacterPart
+            {
+                Type = "Hat",
+            };
+
+            if (string.IsNullOrEmpty(App.Settings.UeProjectPath)) { Log.Error("Unreal Engine Project path is empty!"); return; }
+            if (!Path.Exists(App.Settings.UeProjectPath)) { Log.Error($"{App.Settings.UeProjectPath} doesn't exist!"); return; }
+
+            CookedAssetsPath = Path.Combine(Path.GetDirectoryName(App.Settings.UeProjectPath),
+            "Saved", "Cooked", "WindowsNoEditor", Path.GetFileNameWithoutExtension(App.Settings.UeProjectPath), "Content");
+
+            string pluginsPath = Path.Combine(Path.GetDirectoryName(App.Settings.UeProjectPath), "Plugins", "PhysicsImporter");
+            if (!Path.Exists(pluginsPath)) ZipFile.ExtractToDirectory(PhysicsImporterPath, pluginsPath);
+
+            if (CurrentUeVersion.ReplaceDefaultEngineIni)
+            {
+                string defaultEngineIniPath = Path.Combine(Path.GetDirectoryName(App.Settings.UeProjectPath),
+                "Config", "DefaultEngine.ini");
+                byte[] defaultEngineIniInBytes = TemplateLoader.GetEmbeddedFile(CurrentUeVersion.Name, "RawUeAssets", "DefaultEngine.ini");
+                if (defaultEngineIniInBytes != null) File.WriteAllBytes(defaultEngineIniPath, defaultEngineIniInBytes);
+            }
+
+            if (!App.Settings.UeSkinsPackagePath.StartsWith("/Game/"))
+            {
+                Log.Error($"\"{App.Settings.UeSkinsPackagePath}\" is not a valid Unreal package path, it must start with /Game/");
+                return;
+            }
+
+            CurrentSkinPathTextBox_TextChanged("NoDelay", null);
+        }
+
         private void SkinsPathTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             AppSettings.SetValue("SkinsPath", SkinsPathTextBox.Text);
@@ -267,6 +325,7 @@ namespace UFMT.UI
             string exportUeProjectPath = App.Settings.UeProjectPath;
             string exportUeExecutablePath = App.Settings.UeExecutablePath;
             string ueSkinsPackagePath = App.Settings.UeSkinsPackagePath;
+            string ueEmotesPackagePath = App.Settings.UeEmotesPackagePath;
             string ueSkinsOsPath = ueSkinsPackagePath.Substring(6, ueSkinsPackagePath.Length - 6).Replace("/", "\\"); //Remove /Game/ at the start and replace / with \
 
             if (!SkinValidator.ValidateBeforeExport(exportUeVer.Name, exportSkin.Gender, exportSkin.Name, exportSkin.Description, exportSkin.CID)) return;
@@ -295,7 +354,7 @@ namespace UFMT.UI
             (cookedCodenamePath, "Animations", $"{exportSkin.Codename}_Lobby_Animation.uasset")], exportSkin.CharacterParts.Select
             (cp => Path.Combine(cookedCodenamePath, "Meshes", $"{Path.GetFileNameWithoutExtension(cp.FbxPath)}.uasset")).ToArray());
 
-            AssetRegistryBuilder.CreateAssetRegistry(exportCookedAssetsPath, exportUeVer.Name, exportOutputFnGamePath, ueSkinsPackagePath, "/Game/CustomEmotes", exportSkin.Path);
+            AssetRegistryBuilder.CreateAssetRegistry(exportCookedAssetsPath, exportUeVer.Name, exportOutputFnGamePath, ueSkinsPackagePath, ueEmotesPackagePath, exportSkin.Path);
 
             DirectoryInfo cookedCharacterDirectory = new DirectoryInfo(
             Path.Combine(exportCookedAssetsPath, ueSkinsOsPath, exportSkin.Codename));
@@ -735,64 +794,6 @@ namespace UFMT.UI
             }
             SmallIconComboBox.SelectedItem = CurrentSkin.SmallIcon;
             LargeIconComboBox.SelectedItem = CurrentSkin.LargeIcon;
-        }
-
-        public void LoadContent()
-        {
-            CurrentFnVersion = FnVersionsData.FnVersions.GetValueOrDefault(App.Settings.FnVersion);
-            CurrentUeVersion = UeVersionsData.UeVersions.GetValueOrDefault(App.Settings.UeVersion);
-            if (App.Settings.FnVersion == "8.51-9.10" || App.Settings.FnVersion == "9.41")
-            {
-                Ch1PreviewViewBox.Visibility = Visibility.Visible;
-                Ch2PreviewViewBox.Visibility = Visibility.Collapsed;
-            }
-            else
-            {
-                Ch1PreviewViewBox.Visibility = Visibility.Collapsed;
-                Ch2PreviewViewBox.Visibility = Visibility.Visible;
-            }
-            PhysicsImporterPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", $"PhysicsImporter_{CurrentUeVersion.Name}.zip");
-            Body = new CharacterPart
-            {
-                Type = "Body",
-            };
-            Head = new CharacterPart
-            {
-                Type = "Head",
-            };
-            FaceAcc = new CharacterPart
-            {
-                Type = "Faceacc",
-            };
-            Hat = new CharacterPart
-            {
-                Type = "Hat",
-            };
-
-            if (string.IsNullOrEmpty(App.Settings.UeProjectPath)) { Log.Error("Unreal Engine Project path is empty!"); return; }
-            if (!Path.Exists(App.Settings.UeProjectPath)) { Log.Error($"{App.Settings.UeProjectPath} doesn't exist!"); return; }
-
-            CookedAssetsPath = Path.Combine(Path.GetDirectoryName(App.Settings.UeProjectPath),
-            "Saved", "Cooked", "WindowsNoEditor", Path.GetFileNameWithoutExtension(App.Settings.UeProjectPath), "Content");
-
-            string pluginsPath = Path.Combine(Path.GetDirectoryName(App.Settings.UeProjectPath), "Plugins", "PhysicsImporter");
-            if (!Path.Exists(pluginsPath)) ZipFile.ExtractToDirectory(PhysicsImporterPath, pluginsPath);
-
-            if (CurrentUeVersion.ReplaceDefaultEngineIni)
-            {
-                string defaultEngineIniPath = Path.Combine(Path.GetDirectoryName(App.Settings.UeProjectPath),
-                "Config", "DefaultEngine.ini");
-                byte[] defaultEngineIniInBytes = TemplateLoader.GetEmbeddedFile(CurrentUeVersion.Name, "RawUeAssets", "DefaultEngine.ini");
-                if (defaultEngineIniInBytes != null) File.WriteAllBytes(defaultEngineIniPath, defaultEngineIniInBytes);
-            }
-
-            if (!App.Settings.UeSkinsPackagePath.StartsWith("/Game/"))
-            {
-                Log.Error($"\"{App.Settings.UeSkinsPackagePath}\" is not a valid Unreal package path, it must start with /Game/");
-                return;
-            }
-
-            CurrentSkinPathTextBox_TextChanged("NoDelay", null);
         }
 
         private async Task UpdateSkinPreviewImage(string sourcePath, string codename, string largeIcon)
