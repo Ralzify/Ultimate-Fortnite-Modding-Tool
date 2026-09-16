@@ -47,6 +47,10 @@
                 <TextBlock Text="Unreal Engine Skins Import Path" FontSize="16" VerticalAlignment="Center" HorizontalAlignment="Left" Width="230"/>
                 <TextBox Text="{x:Bind Settings.UeSkinsPackagePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MaxWidth="700" LostFocus="ConvertToUePackagePath"/>
             </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="Unreal Engine Emotes Import Path" FontSize="16" VerticalAlignment="Center" HorizontalAlignment="Left" Width="235"/>
+                <TextBox Text="{x:Bind Settings.UeEmotesPackagePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MaxWidth="700" LostFocus="ConvertToUePackagePath"/>
+            </StackPanel>
         </StackPanel>
     </Grid>
 </Page>

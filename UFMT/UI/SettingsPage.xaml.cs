@@ -48,7 +48,6 @@ public sealed partial class SettingsPage : Page
 
         (sender as TextBox).Text = path;
     }
-
 }
 
 public class SettingsData : INotifyPropertyChanged
@@ -67,6 +66,7 @@ public class SettingsData : INotifyPropertyChanged
         _ueExecutablePath = AppSettings.GetValue($"{UeVersion}_ExecutablePath", "");
         _ueProjectPath = AppSettings.GetValue($"{UeVersion}_ProjectPath", "");
         _ueSkinsPackagePath = AppSettings.GetValue($"UeSkinsPackagePath", "/Game/CustomSkins");
+        _ueEmotesPackagePath = AppSettings.GetValue($"UeEmotesPackagePath", "/Game/CustomEmotes");
     }
 
     private Dictionary<string, string[]> UeFnVersions = new()
@@ -177,6 +177,21 @@ public class SettingsData : INotifyPropertyChanged
             {
                 _ueSkinsPackagePath = value;
                 AppSettings.SetValue($"UeSkinsPackagePath", value);
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private string _ueEmotesPackagePath;
+    public string UeEmotesPackagePath
+    {
+        get => _ueEmotesPackagePath;
+        set
+        {
+            if (_ueEmotesPackagePath != value)
+            {
+                _ueEmotesPackagePath = value;
+                AppSettings.SetValue($"UeEmotesPackagePath", value);
                 OnPropertyChanged();
             }
         }
