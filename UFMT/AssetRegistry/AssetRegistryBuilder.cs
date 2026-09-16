@@ -105,19 +105,16 @@ namespace UFMT.AssetRegistry
 
             DeleteOldFnGamePath(currentCosmeticPath);
 
-            if (!Directory.Exists(outputFnGamePath))
-            {
-                Directory.CreateDirectory(outputFnGamePath);
-                Console.WriteLine($"Created {outputFnGamePath}!");
-            }
+            if (Path.Exists(outputFnGamePath)) Directory.Delete(outputFnGamePath, true);
+            Directory.CreateDirectory(outputFnGamePath);
 
             AssetRegistryHelper.Inject(TemplateLoader.GetEmbeddedFile(ueVersionNumber, "RawUeAssets", "AssetRegistry.bin"), cosmeticJsons.ToArray(), 
             Path.Combine(outputFnGamePath, "AssetRegistry312398E80AB6209B22CAA2EBAB2DB35B.bin"));
         }
 
-        private static void DeleteOldFnGamePath(string skinPath)
+        private static void DeleteOldFnGamePath(string emotePath)
         {
-            string oldOutputPath = Path.Combine(skinPath, "Output", "FortniteGame");
+            string oldOutputPath = Path.Combine(emotePath, "Output", "FortniteGame");
             if (Directory.Exists(oldOutputPath)) Directory.Delete(oldOutputPath, true); //For OG users ;)
         }
     }
