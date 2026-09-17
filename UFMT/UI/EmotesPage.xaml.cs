@@ -412,7 +412,7 @@ namespace UFMT.UI
             await FbxConverter.ConvertPsaToFbx(Path.Combine(CurrentEmote.SourcePath, "Animations", CurrentEmote.FemaleAnimationPsa),
             Path.Combine(CurrentEmote.SourcePath, "Fbx", "Animations", CurrentEmote.FemaleAnimationFbx));
 
-            UnrealExportEmoteData unrealData = UnrealExportDataCollector.CollectEmoteData(CurrentEmote, ueEmotesPackagePath);
+            UnrealExportEmoteData unrealData = UnrealExportDataCollector.CollectEmoteData(CurrentEmote, ueEmotesPackagePath, CurrentUeVersion.Name);
 
             Log.Test(unrealData.MaleAnimationFbxPath);
             Log.Test(unrealData.Codename);
@@ -435,6 +435,8 @@ namespace UFMT.UI
             EmoteAssetCreator.CreateEid(OutputFnGamePath, CurrentFnVersion, CurrentUeVersion, ueEmotesPackagePath, CurrentEmote.Codename,
             CurrentEmote.EID, CurrentEmote.Name, CurrentEmote.Description, CurrentEmote.Rarity, CurrentEmote.Series);
             U4Pak.Pack(OutputFnGamePath, Path.Combine(Path.GetDirectoryName(OutputFnGamePath), $"z_{CurrentEmote.Codename}.pak"));
+
+            Log.Success("\nYour custom emote is ready! Check the output folder");
         }
         public static void PrintAllValues(EmoteData data)
         {

@@ -217,7 +217,6 @@ namespace UFMT.FnAssets
             string descriptionKey = Guid.NewGuid().ToString("N").ToUpper();
             ((TextPropertyData)export0["DisplayName"]).Value.Value = displayNameKey;
             ((TextPropertyData)export0["Description"]).Value.Value = descriptionKey;
-            export0.Data.RemoveAt(7); //Removes gameplay tags
 
 
             if (series == "None") export0.Data.RemoveAt(10);
@@ -228,6 +227,8 @@ namespace UFMT.FnAssets
                 importData[3].ObjectName.Value.Value = $"/Game/Athena/Items/Cosmetics/Series/{seriesCodename}";
                 Console.WriteLine($"Changed the Series in {eid} to {series}");
             }
+
+            export0.Data.RemoveAt(7); //Removes gameplay tags
 
             var rarityProperty = (EnumPropertyData)export0["Rarity"];
             rarityProperty.Value.Value.Value = $"EFortRarity::{rarity}";
