@@ -163,7 +163,8 @@ def import_sound(wav_path):
         sound_wave = unreal.load_asset(task.imported_object_paths[0])
         if sound_wave:
             sound_wave.set_editor_property("streaming", True)
-            if unreal_engine_version != "UE_4.25_FnGameProj12.41":
+            if (unreal_engine_version == "UE_4.23_FnGameProj8.51" or unreal_engine_version == "UE_4.22" or
+            unreal_engine_version == "UE_4.23_FnGameProj9.10" or unreal_engine_version == "UE_4.23_FnGameProj9.41"):
                 sound_wave.set_editor_property("virtualize_when_silent", True)
             sound_wave.set_editor_property("looping", True)
 
