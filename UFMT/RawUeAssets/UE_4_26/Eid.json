@@ -1,0 +1,37 @@
+{
+  "ObjectPath": "/Game/Athena/Items/Cosmetics/Dances/EID_Template.EID_Template",
+  "PackagePath": "/Game/Athena/Items/Cosmetics/Dances",
+  "AssetClass": "AthenaDanceItemDefinition",
+  "PackageName": "/Game/Athena/Items/Cosmetics/Dances/EID_Template",
+  "AssetName": "EID_Template",
+  "TagAndValue": [
+    {
+      "Item1": "PrimaryAssetType",
+      "Item2": "AthenaDance"
+    },
+    {
+      "Item1": "PrimaryAssetName",
+      "Item2": "EID_Template"
+    },
+    {
+      "Item1": "ItemType",
+      "Item2": "AthenaDance"
+    },
+    {
+      "Item1": "NativeClass",
+      "Item2": "Class'/Script/FortniteGame.AthenaDanceItemDefinition'"
+    },
+    {
+      "Item1": "bNeverPersisted",
+      "Item2": "False"
+    },
+    {
+      "Item1": "UpgradeRarityRecipeHandle",
+      "Item2": "(DataTable=None,RowName=\"\")"
+    }
+  ],
+  "ChunkIDs": [
+    0
+  ],
+  "PackageTags": 0
+}
