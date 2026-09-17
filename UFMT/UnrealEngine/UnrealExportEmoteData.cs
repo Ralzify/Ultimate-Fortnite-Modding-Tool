@@ -20,5 +20,6 @@ namespace UFMT.UnrealEngine
         public string Codename { get; set; }
         public string EID { get; set; } = string.Empty;
         public string UeEmotesPackagePath { get; set; }
+        public string UnrealEngineVersion { get; set; }
     }
 }

@@ -25,6 +25,7 @@ sound_wav_compression_quality = data.get("SoundWavCompressionQuality")
 code_name = data.get("Codename")
 eid = data.get("EID")
 package_path = data.get("UeEmotesPackagePath")
+unreal_engine_version = data.get("UnrealEngineVersion")
 
 animations_destination_path = "{}/{}/Animation".format(package_path, code_name)
 sounds_destination_path = "{}/{}/Sound".format(package_path, code_name)
@@ -162,7 +163,8 @@ def import_sound(wav_path):
         sound_wave = unreal.load_asset(task.imported_object_paths[0])
         if sound_wave:
             sound_wave.set_editor_property("streaming", True)
-            sound_wave.set_editor_property("virtualize_when_silent", True)
+            if unreal_engine_version != "UE_4.25_FnGameProj12.41":
+                sound_wave.set_editor_property("virtualize_when_silent", True)
             sound_wave.set_editor_property("looping", True)
 
             if sound_wav_compression_quality is not None:

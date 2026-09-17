@@ -67,7 +67,7 @@ namespace UFMT.UnrealEngine
             return unrealData;
         }
 
-        internal static UnrealExportEmoteData CollectEmoteData(EmoteData currentEmote, string emotePackagePath)
+        internal static UnrealExportEmoteData CollectEmoteData(EmoteData currentEmote, string emotePackagePath, string unrealEngineVersion)
         {
             var unrealData = new UnrealExportEmoteData()
             {
@@ -82,7 +82,8 @@ namespace UFMT.UnrealEngine
                 IconTexturePaths = [Path.Combine(currentEmote.IconsPath, currentEmote.SmallIcon), Path.Combine(currentEmote.IconsPath, currentEmote.LargeIcon)],
                 Codename = currentEmote.Codename,
                 EID = currentEmote.EID,
-                UeEmotesPackagePath = emotePackagePath
+                UeEmotesPackagePath = emotePackagePath,
+                UnrealEngineVersion = unrealEngineVersion
             };
 
             if (currentEmote.MaleAnimationJson == string.Empty) unrealData.MaleAnimationJsonPath = string.Empty;
