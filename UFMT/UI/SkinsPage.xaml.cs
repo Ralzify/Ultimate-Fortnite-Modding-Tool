@@ -89,6 +89,26 @@ namespace UFMT.UI
                 {
                     seriesComboBox.Items.Add(series);
                 }
+                // Just in case the .json didn't contain all the default series
+                if (!seriesComboBox.Items.Contains("None"))
+                {
+                    seriesComboBox.Items.Insert(0, "None");
+                    Log.Warning("Failed to find 'None' in Settings JSON; added it automatically.");
+                }
+                foreach (string defaultSeries in SkinAssetCreator.SeriesCodenames.Keys)
+                {
+                    if (!seriesComboBox.Items.Contains(defaultSeries))
+                    {
+                        seriesComboBox.Items.Add(defaultSeries);
+                        Log.Warning($"Failed to find '{defaultSeries}' in Settings JSON; added it automatically.");
+                    }
+                }
+                if (!seriesComboBox.Items.Contains("+Add"))
+                {
+                    seriesComboBox.Items.Add("+Add");
+                    Log.Warning("Failed to find '+Add' in Settings JSON; added it automatically.");
+                }
+                AppSettings.SetValue("AvailableSeries", seriesComboBox.Items.ToArray());
             }
             else
             {
