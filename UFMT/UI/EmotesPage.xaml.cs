@@ -1,11 +1,5 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
-using Microsoft.UI.Xaml.Navigation;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -17,7 +11,6 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using UFMT.AssetRegistry;
 using UFMT.Blender;
 using UFMT.Core;
@@ -26,7 +19,6 @@ using UFMT.FnAssetsLogic;
 using UFMT.MaterialTextureAssignment;
 using UFMT.u4Pak;
 using UFMT.UnrealEngine;
-using Windows.Foundation;
 using Windows.Foundation.Collections;
 
 namespace UFMT.UI
@@ -130,52 +122,40 @@ namespace UFMT.UI
 
             CurrentEmote = new EmoteData();
             if (!EmoteValidator.ValidateAfterPathChange((sender as TextBox)?.Text, CurrentEmote)) return;
-            EmoteData loadedJson = LoadEmoteConfig(Path.Combine(CurrentEmote.Path, $"{CurrentEmote.Codename}_Settings.json"));
 
-            if (loadedJson != null)
+            try
             {
-                CurrentEmote = loadedJson;
-                CurrentEmote.Path = CurrentEmotePathTextBox.Text;
-                if (!EmoteValidator.ValidateAfterPathChange(CurrentEmote.Path, CurrentEmote)) return;
-                Log.Test("Current emote was not null!");
-                Log.Test($"Current emote male animation length: {CurrentEmote.MaleAnimationLength}, current emote name: {CurrentEmote.Name}");
+                (bool success, string maleAnim, string femaleAnim) = EmoteFolderScanner.GetAnimationPsaData(CurrentEmote.AnimationsPath);
+                if (!success) return;
+                CurrentEmote.MaleAnimationPsa = $"{maleAnim}.psa";
+                CurrentEmote.FemaleAnimationPsa = $"{femaleAnim}.psa";
+                (CurrentEmote.MaleAnimationJson, CurrentEmote.FemaleAnimationJson) = EmoteFolderScanner.GetAnimationJsonData
+                (CurrentEmote.MaleAnimationPsa, CurrentEmote.FemaleAnimationPsa, CurrentEmote.AnimationsPath);
+
+                (success, string wav) = EmoteFolderScanner.GetSoundData(CurrentEmote.SoundPath);
+                if (!success) return;
+                CurrentEmote.SoundWav = wav;
+
+                (string largeIcon, string smallIcon) = TextureCategorizer.GetIconTextures(CurrentEmote.IconsPath, "emote");
+                if (largeIcon == null || smallIcon == null) return;
+                CurrentEmote.LargeIcon = $"{largeIcon}.png";
+                CurrentEmote.SmallIcon = $"{smallIcon}.png";
+
+                CurrentEmote.MaleAnimationLength = PsaReader.GetAnimationLength(Path.Combine(CurrentEmote.AnimationsPath, CurrentEmote.MaleAnimationPsa));
+                CurrentEmote.FemaleAnimationLength = PsaReader.GetAnimationLength(Path.Combine(CurrentEmote.AnimationsPath, CurrentEmote.FemaleAnimationPsa));
+
+                CurrentEmote.MaleAnimationLength = Math.Round(CurrentEmote.MaleAnimationLength / 30.0, 6);
+                CurrentEmote.FemaleAnimationLength = Math.Round(CurrentEmote.FemaleAnimationLength / 30.0, 6);
+
+                CurrentEmote.EID = $"EID_{CurrentEmote.Codename}";
+                CurrentEmote.OutputContentPath = Path.Combine(CurrentEmote.Path, "Output", "FortniteGame", "Content");
+
+                LoadEmoteConfigInto(Path.Combine(CurrentEmote.Path, $"{CurrentEmote.Codename}_Settings.json"), CurrentEmote);
             }
-            else
+            catch (Exception ex)
             {
-                try
-                {
-                    (bool success, string maleAnim, string femaleAnim) = EmoteFolderScanner.GetAnimationPsaData(CurrentEmote.AnimationsPath);
-                    if (!success) return;
-                    CurrentEmote.MaleAnimationPsa = $"{maleAnim}.psa";
-                    CurrentEmote.FemaleAnimationPsa = $"{femaleAnim}.psa";
-                    (CurrentEmote.MaleAnimationJson, CurrentEmote.FemaleAnimationJson) = EmoteFolderScanner.GetAnimationJsonData
-                    (CurrentEmote.MaleAnimationPsa, CurrentEmote.FemaleAnimationPsa, CurrentEmote.AnimationsPath);
-
-                    Log.Test($"Current emote sound path is {CurrentEmote.SoundPath}");
-                    (success, string wav) = EmoteFolderScanner.GetSoundData(CurrentEmote.SoundPath);
-                    if (!success) return;
-                    CurrentEmote.SoundWav = wav;
-
-                    (string largeIcon, string smallIcon) = TextureCategorizer.GetIconTextures(CurrentEmote.IconsPath, "emote");
-                    if (largeIcon == null || smallIcon == null) return;
-                    CurrentEmote.LargeIcon = $"{largeIcon}.png";
-                    CurrentEmote.SmallIcon = $"{smallIcon}.png";
-
-                    Log.Test($"Large icon: {CurrentEmote.LargeIcon}, Small icon: {CurrentEmote.SmallIcon}");
-
-                    CurrentEmote.MaleAnimationLength = PsaReader.GetAnimationLength(Path.Combine(CurrentEmote.AnimationsPath, CurrentEmote.MaleAnimationPsa));
-                    CurrentEmote.FemaleAnimationLength = PsaReader.GetAnimationLength(Path.Combine(CurrentEmote.AnimationsPath, CurrentEmote.FemaleAnimationPsa));
-
-                    CurrentEmote.MaleAnimationLength = Math.Round(CurrentEmote.MaleAnimationLength / 30.0, 6);
-                    CurrentEmote.FemaleAnimationLength = Math.Round(CurrentEmote.FemaleAnimationLength / 30.0, 6);
-
-                    CurrentEmote.EID = $"EID_{CurrentEmote.Codename}";
-                    CurrentEmote.OutputContentPath = Path.Combine(CurrentEmote.Path, "Output", "FortniteGame", "Content");
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex.ToString());
-                }
+                Log.Error($"An error occurred while changing current emote path: {ex.Message}");
+                return;
             }
 
             OutputFnGamePath = Path.Combine(CurrentEmote.Path, "Output", App.Settings.FnVersion, "FortniteGame");
@@ -373,31 +353,39 @@ namespace UFMT.UI
             PreviouslySelectedSeries = AddSeriesTextBox.Text;
             args.Cancel = false;
         }
-        private EmoteData LoadEmoteConfig(string jsonPath)
+        private void LoadEmoteConfigInto(string jsonPath, EmoteData target)
         {
-            string filePath = jsonPath;
-            if (!File.Exists(filePath)) return null;
-            string jsonString = File.ReadAllText(filePath);
+            if (!File.Exists(jsonPath)) return;
 
+            string jsonString = File.ReadAllText(jsonPath);
             var node = System.Text.Json.Nodes.JsonNode.Parse(jsonString)?.AsObject();
-            // Just in case the user closed the program when +Add was selected
-            if (node != null && node.ContainsKey("Series") && node["Series"].ToString() != "None")
+            if (node == null) return;
+
+            if (node.ContainsKey("Series") && node["Series"]?.ToString() != "None")
             {
                 string currentSeries = node["Series"].ToString();
-                if (currentSeries == "+Add") node["Series"] = "None";
-
+                if (currentSeries == "+Add")
+                {
+                    node["Series"] = "None";
+                }
                 else if (!seriesComboBox.Items.Contains(currentSeries))
                 {
                     seriesComboBox.Items.Insert(seriesComboBox.Items.Count - 1, currentSeries);
                     Console.WriteLine($"Detected new series on the loaded emote, added \"{currentSeries}\"");
                 }
-                currentSeries = node["Series"].ToString();
             }
 
-            jsonString = node.ToJsonString();
-            EmoteData loadedEmote = System.Text.Json.JsonSerializer.Deserialize<EmoteData>(jsonString);
+            var loadedEmote = System.Text.Json.JsonSerializer.Deserialize<EmoteData>(node.ToJsonString());
+            if (loadedEmote == null) return;
 
-            return loadedEmote;
+            foreach (var prop in typeof(EmoteData).GetProperties())
+            {
+                if (!prop.CanWrite || prop.IsDefined(typeof(JsonIgnoreAttribute), false))
+                    continue;
+
+                var val = prop.GetValue(loadedEmote);
+                prop.SetValue(target, val);
+            }
         }
         private async void ExportButton_Click(object sender, RoutedEventArgs e)
         {
@@ -407,6 +395,7 @@ namespace UFMT.UI
             CurrentEmote.MaleAnimationFbx = $"Emote_{CurrentEmote.Codename}_CMM.fbx";
             CurrentEmote.FemaleAnimationFbx = $"Emote_{CurrentEmote.Codename}_CMF.fbx";
             PrintAllValues(CurrentEmote);
+            return;
             string cookedCurrentEmotePath = Path.Combine(CookedAssetsPath, ueEmotesOsPath, CurrentEmote.Codename);
             string OutputFnGameCurrentEmoteFolder = Path.Combine(OutputFnGamePath, "Content", ueEmotesOsPath, CurrentEmote.Codename);
 
@@ -462,6 +451,7 @@ namespace UFMT.UI
 
     public class EmoteData : INotifyPropertyChanged
     {
+        [JsonIgnore]
         public string Codename { get; set; } = string.Empty;
         private string _name = string.Empty;
         public string Name
@@ -520,6 +510,7 @@ namespace UFMT.UI
 
         }
         private string _smallIcon = string.Empty;
+        [JsonIgnore]
         public string SmallIcon
         {
             get => _smallIcon;
@@ -533,6 +524,7 @@ namespace UFMT.UI
             }
         }
         private string _largeIcon = string.Empty;
+        [JsonIgnore]
         public string LargeIcon
         {
             get => _largeIcon;
@@ -559,8 +551,11 @@ namespace UFMT.UI
             }
 
         }
+        [JsonIgnore]
         public string MaleAnimationPsa { get; set; } = string.Empty;
+        [JsonIgnore]
         public string MaleAnimationFbx { get; set; } = string.Empty;
+        [JsonIgnore]
         public string MaleAnimationJson { get; set; } = string.Empty;
         private double _maleAnimationLength = 0;
         public double MaleAnimationLength
@@ -588,8 +583,11 @@ namespace UFMT.UI
                 }
             }
         }
+        [JsonIgnore]
         public string FemaleAnimationPsa { get; set; } = string.Empty;
+        [JsonIgnore]
         public string FemaleAnimationFbx { get; set; } = string.Empty;
+        [JsonIgnore]
         public string FemaleAnimationJson { get; set; } = string.Empty;
         private double _femaleAnimationLength = 0;
         public double FemaleAnimationLength
@@ -604,6 +602,7 @@ namespace UFMT.UI
                 }
             }
         }
+        [JsonIgnore]
         public string SoundWav { get; set; } = string.Empty;
         private int _soundWavCompressionQuality = 60;
         public int SoundWavCompressionQuality
@@ -618,16 +617,17 @@ namespace UFMT.UI
                 }
             }
         }
+        [JsonIgnore]
         public string OutputContentPath { get; set; } = string.Empty;
 
         public string Path = string.Empty;
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
         public string SourcePath { get; set; } = string.Empty;
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
         public string AnimationsPath { get; set; } = string.Empty;
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
         public string IconsPath { get; set; } = string.Empty;
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
         public string SoundPath { get; set; } = string.Empty;
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
