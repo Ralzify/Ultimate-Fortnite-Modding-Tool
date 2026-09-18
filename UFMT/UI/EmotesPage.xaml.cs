@@ -51,8 +51,6 @@ namespace UFMT.UI
         public EmotesPage()
         {
             InitializeComponent();
-            CurrentEmote = new EmoteData();
-            EmotesPathTextBox.Text = AppSettings.GetValue("EmotesPath", string.Empty);
 
             seriesComboBox.Items.Clear();
             var seriesOptions = AppSettings.GetValue<ObservableCollection<string>>("AvailableSeries", null);
@@ -95,6 +93,8 @@ namespace UFMT.UI
             seriesComboBox.SelectedIndex = 0;
             seriesComboBox.Items.VectorChanged += SaveSeries;
 
+            EmotesPathTextBox.Text = AppSettings.GetValue("EmotesPath", string.Empty);
+            CurrentEmote = new EmoteData();
             CurrentEmotePathTextBox.Text = AppSettings.GetValue("CurrentEmotePath", string.Empty);
             CurrentEmotePathTextBox_TextChanged(CurrentEmotePathTextBox, null);
 
@@ -108,7 +108,6 @@ namespace UFMT.UI
         "Saved", "Cooked", "WindowsNoEditor", Path.GetFileNameWithoutExtension(App.Settings.UeProjectPath), "Content");
         public static string OutputFnGamePath;
         public static string PreviouslySelectedSeries = "None";
-        private static readonly string ValidCodenameCharacters = "abcdefghijklmnopqrstuvwxyz1234567890_";
 
         private void EmotesPathTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
@@ -127,20 +126,10 @@ namespace UFMT.UI
             {
                 return;
             }
+            AppSettings.SetValue("CurrentEmotePath", (sender as TextBox).Text);
 
             CurrentEmote = new EmoteData();
-            if (!App.Settings.UeEmotesPackagePath.StartsWith("/Game/"))
-            {
-                Log.Error($"\"{App.Settings.UeEmotesPackagePath}\" is not a valid Unreal package path, it must start with /Game/");
-                return;
-            }
-
-            AppSettings.SetValue("CurrentEmotePath", (sender as TextBox).Text);
             if (!EmoteValidator.ValidateAfterPathChange((sender as TextBox)?.Text, CurrentEmote)) return;
-            Log.Test($"Current emote's icons folder path is {CurrentEmote.IconsPath}");
-
-            CurrentEmote.Codename = Path.GetFileName(CurrentEmote.Path);
-
             EmoteData loadedJson = LoadEmoteConfig(Path.Combine(CurrentEmote.Path, $"{CurrentEmote.Codename}_Settings.json"));
 
             if (loadedJson != null)
@@ -302,14 +291,10 @@ namespace UFMT.UI
                 return;
             }
 
-            foreach (char c in CodenameFolderCreateTextBox.Text)
+            if (CodenameFolderCreateTextBox.Text.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '_'))
             {
-                if (!ValidCodenameCharacters.Contains(c.ToString().ToLower()))
-                {
-                    Log.Error("The codename can only contain alphabetical characters, " +
-                    "numbers and _");
-                    return;
-                }
+                Log.Error($"{CodenameFolderCreateTextBox.Text} contains invalid characters; only basic English letters (A-Z), numbers, and underscores are allowed.");
+                return;
             }
 
             Directory.CreateDirectory(Path.Combine(EmotesPathTextBox.Text, CodenameFolderCreateTextBox.Text));
