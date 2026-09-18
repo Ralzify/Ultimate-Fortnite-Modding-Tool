@@ -18,7 +18,6 @@ namespace UFMT.FnAssetsLogic
 
         internal static (bool success, string maleAnimationPsaName, string femaleAnimationPsaName) GetAnimationPsaData(string animationsFolderPath)
         {
-
             string maleAnimation = null;
             string femaleAnimation = null;
 
@@ -56,14 +55,11 @@ namespace UFMT.FnAssetsLogic
                 if (maleAnimation != null && femaleAnimation != null) return (true, maleAnimation, femaleAnimation);
             }
 
-            Log.Error($"Cannot determine male and female animations");
-            Console.WriteLine($"Animations were:");
-            Console.WriteLine($"UNKNOWN: {animation1}");
-            Console.WriteLine($"UNKNOWN: {animation2}");
+            Log.Error($"Cannot determine male and female animations for '{animation1}' and '{animation2}'. Ensure animations were not renamed after export!");
             return (false, maleAnimation, femaleAnimation);
         }
 
-        internal static (string maleAnimationJson, string femaleAnimationJson) GetAnimationJsonData(string maleAnimationPsa, string femaleAnimationPsa, string animationsPath)
+        internal static (string maleAnimationJson, string femaleAnimationJson) GetAnimationJsonData(string maleAnimationPsa, string femaleAnimationPsa, string animationsPath) 
         {
             string maleJson = string.Empty;
             string femaleJson = string.Empty;
@@ -94,7 +90,7 @@ namespace UFMT.FnAssetsLogic
         {
             if ((animation1.Contains("_CMM_") || animation1.EndsWith("_CMM")) && (animation2.Contains("_CMF_") || animation2.EndsWith("_CMF")))
             {
-                Console.WriteLine($"Male animation contained CMM while female animation contained CMF");
+                Console.WriteLine("Matched gender by suffix/tag: Male ('CMM'), Female ('CMF').");
                 return (animation1, animation2);
             }
             return (null, null);
@@ -104,7 +100,7 @@ namespace UFMT.FnAssetsLogic
         {
             if (animation1.EndsWith("_M") && animation2.EndsWith("_F"))
             {
-                Console.WriteLine($"Male animation ended with _M and female animation ended with _F");
+                Console.WriteLine("Matched gender by file suffix: Male ('_M'), Female ('_F').");
                 return (animation1, animation2);
             }
             return (null, null);
@@ -114,7 +110,7 @@ namespace UFMT.FnAssetsLogic
         {
             if (!animation1.Contains("Female") && animation2.Contains("Female"))
             {
-                Console.WriteLine($"Female animation contained Female in it while the male animation didn't");
+                Console.WriteLine("Matched gender by keyword: Female ('Female'), Male (no 'Female').");
                 return (animation1, animation2);
             }
             return (null, null);
@@ -124,7 +120,7 @@ namespace UFMT.FnAssetsLogic
         {
             if ((animation2.Contains("_CMF_") || animation2.EndsWith("CMF")) && !animation1.Contains("_CMF_") && !animation1.EndsWith("CMF"))
             {
-                Console.WriteLine($"Female animation contained CMF in it while the male animation didn't contain CMM in it");
+                Console.WriteLine("Matched gender by partial tag: Female ('CMF'), Male (missing 'CMF').");
                 return (animation1, animation2);
             }
             return (null, null);
@@ -134,7 +130,7 @@ namespace UFMT.FnAssetsLogic
         {
             if ((animation1.Contains("_CMM_") || animation1.EndsWith("CMM")) && !animation2.Contains("_CMM_") && !animation2.EndsWith("CMM"))
             {
-                Console.WriteLine($"Male animation contained CMM in it while the female animation didn't contain CMF in it");
+                Console.WriteLine("Matched gender by partial tag: Male ('CMM'), Female (missing 'CMM').");
                 return (animation1, animation2);
             }
             return (null, null);
@@ -144,7 +140,7 @@ namespace UFMT.FnAssetsLogic
         {
             if (!animation2.Contains("Male") && animation1.Contains("Male"))
             {
-                Console.WriteLine($"Male animation contained Male in it while the female animation didn't");
+                Console.WriteLine("Matched gender by keyword: Male ('Male'), Female (no 'Male').");
                 return (animation1, animation2);
             }
             return (null, null);
@@ -154,7 +150,7 @@ namespace UFMT.FnAssetsLogic
         {
             if (animation1.Contains("_M_") && !animation2.Contains("_M_") && animation2.Contains("_F_") && !animation1.Contains("_F_"))
             {
-                Console.WriteLine($"Male animation contained _M_ in it but not _F_ while female animation contained _F_ in it but not _M_");
+                Console.WriteLine("Matched gender by infix tag: Male ('_M_'), Female ('_F_').");
                 return (animation1, animation2);
             }
             return (null, null);
