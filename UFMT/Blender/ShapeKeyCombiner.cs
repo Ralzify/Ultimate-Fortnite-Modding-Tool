@@ -32,7 +32,14 @@ namespace UFMT.Blender
                 return false;
             }
 
-            ProcessStartInfo psi = new ProcessStartInfo(App.Settings.BlenderPath, $"-b --python \"{CombineShapeKeysScript}\" -- \"{fbxFilePath}\"")
+            string blenderPath = App.Settings.BlenderPath;
+            if (string.Equals(Path.GetFileName(blenderPath), "blender-launcher.exe", StringComparison.OrdinalIgnoreCase))
+            {
+                string consolePath = Path.Combine(Path.GetDirectoryName(blenderPath), "blender.exe");
+                if (File.Exists(consolePath)) blenderPath = consolePath;
+            }
+
+            ProcessStartInfo psi = new ProcessStartInfo(blenderPath, $"-b --python-exit-code 1 --python \"{CombineShapeKeysScript}\" -- \"{fbxFilePath}\"")
             {
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -42,13 +49,15 @@ namespace UFMT.Blender
 
             using (Process blender = Process.Start(psi))
             {
-                string stdout = await blender.StandardOutput.ReadToEndAsync();
-                string stderr = await blender.StandardError.ReadToEndAsync();
+                Task<string> stdoutTask = blender.StandardOutput.ReadToEndAsync();
+                Task<string> stderrTask = blender.StandardError.ReadToEndAsync();
                 await blender.WaitForExitAsync();
+                string stdout = await stdoutTask;
+                string stderr = await stderrTask;
 
                 if (blender.ExitCode != 0)
                 {
-                    Log.Error($"Blender shape key combination failed with exit code {blender.ExitCode}:\n{stderr}");
+                    Log.Error($"Blender shape key combination failed for {fbxFilePath} with exit code {blender.ExitCode}:\n{stdout}\n{stderr}");
                     return false;
                 }
 
@@ -58,9 +67,14 @@ namespace UFMT.Blender
                     Log.Error("Make sure you are using the correct Blender version and have all required extensions enabled!");
                     return false;
                 }
+
+                foreach (string line in stdout.Split('\n'))
+                {
+                    if (line.StartsWith("Skipping shape key combination:") || line.StartsWith("Combined "))
+                        Console.WriteLine(line.TrimEnd());
+                }
             }
 
-            Log.Success($"Successfully combined shape keys for {fbxFilePath}");
             return true;
         }
     }

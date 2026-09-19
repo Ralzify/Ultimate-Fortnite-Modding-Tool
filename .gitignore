@@ -4,3 +4,4 @@ obj/
 packages/
 *.exe
 *.dll
+/tests

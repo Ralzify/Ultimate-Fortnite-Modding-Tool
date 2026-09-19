@@ -367,8 +367,8 @@ namespace UFMT.UI
             exportSkin.Gender, exportSkin.Codename, exportSkin.CID, ueSkinsPackagePath);
 
             string jsonString = System.Text.Json.JsonSerializer.Serialize(unrealData, AppJsonContext.Default.UnrealExportSkinData);
-            await UnrealProcessRunner.LaunchUnreal(jsonString, exportUeProjectPath, exportUeExecutablePath, "skin");
-            await UnrealProcessRunner.CookFiles(exportUeProjectPath, exportUeExecutablePath);
+            if (!await UnrealProcessRunner.LaunchUnreal(jsonString, exportUeProjectPath, exportUeExecutablePath, "skin")) return;
+            if (!await UnrealProcessRunner.CookFiles(exportUeProjectPath, exportUeExecutablePath)) return;
 
             exportUeVer.FixRequiredFiles([Path.Combine
             (cookedCodenamePath, "Animations", $"{exportSkin.Codename}_Lobby_Animation.uasset")], exportSkin.CharacterParts.Select

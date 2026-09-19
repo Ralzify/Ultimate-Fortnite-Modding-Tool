@@ -412,8 +412,8 @@ namespace UFMT.UI
             string jsonString = System.Text.Json.JsonSerializer.Serialize(unrealData, AppJsonContext.Default.UnrealExportEmoteData);
 
             Log.Test($"{jsonString}");
-            await UnrealProcessRunner.LaunchUnreal(jsonString, App.Settings.UeProjectPath, App.Settings.UeExecutablePath, "emote");
-            await UnrealProcessRunner.CookFiles(App.Settings.UeProjectPath, App.Settings.UeExecutablePath);
+            if (!await UnrealProcessRunner.LaunchUnreal(jsonString, App.Settings.UeProjectPath, App.Settings.UeExecutablePath, "emote")) return;
+            if (!await UnrealProcessRunner.CookFiles(App.Settings.UeProjectPath, App.Settings.UeExecutablePath)) return;
             CurrentUeVersion.FixRequiredFiles([Path.Combine(cookedCurrentEmotePath, "Animations", $"{Path.GetFileNameWithoutExtension(CurrentEmote.MaleAnimationFbx)}.uasset"),
             Path.Combine(cookedCurrentEmotePath, "Animations", $"{Path.GetFileNameWithoutExtension(CurrentEmote.FemaleAnimationFbx)}.uasset")], [string.Empty]);
             AssetRegistryBuilder.CreateAssetRegistry(CookedAssetsPath, CurrentUeVersion.Name, OutputFnGamePath, App.Settings.UeSkinsPackagePath, ueEmotesPackagePath, CurrentEmote.Path);
@@ -629,6 +629,8 @@ namespace UFMT.UI
         public string IconsPath { get; set; } = string.Empty;
         [JsonIgnore]
         public string SoundPath { get; set; } = string.Empty;
+        public string SoundWavPath { get; internal set; }
+
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {

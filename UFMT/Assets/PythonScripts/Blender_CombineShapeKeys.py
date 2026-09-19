@@ -3,16 +3,16 @@ import os
 import traceback
 import bpy
 
-local_app_data = os.getenv('LOCALAPPDATA')
-log_dir = os.path.join(local_app_data, 'UFMT')
-os.makedirs(log_dir, exist_ok=True)
-log_file_path = os.path.join(log_dir, 'python_combineshapekeys_log.txt')
-
 def log_error(msg):
+    local_app_data = os.getenv('LOCALAPPDATA') or os.path.expanduser('~')
+    log_dir = os.path.join(local_app_data, 'UFMT')
+    os.makedirs(log_dir, exist_ok=True)
+    log_file_path = os.path.join(log_dir, 'python_combineshapekeys_log.txt')
     with open(log_file_path, "a", encoding="utf-8") as f:
         f.write(msg + "\n")
 
-try:
+
+def main():
     argv = sys.argv
     if "--" in argv:
         args = argv[argv.index("--") + 1:]
@@ -30,21 +30,24 @@ try:
         bpy.ops.object.delete()
 
     # Import FBX
-    if hasattr(bpy.ops.wm, "fbx_import"):
-        bpy.ops.wm.fbx_import(filepath=fbx_file_path)
-    elif hasattr(bpy.ops.import_scene, "fbx"):
-        bpy.ops.import_scene.fbx(filepath=fbx_file_path)
-    else:
-        raise RuntimeError("No suitable FBX import operator found in Blender.")
+    # bpy.ops creates wrappers even for unregistered operators, so hasattr is
+    # not a reliable availability check on older Blender versions.
+    try:
+        bpy.ops.wm.fbx_import.get_rna_type()
+        import_fbx = bpy.ops.wm.fbx_import
+    except AttributeError:
+        import_fbx = bpy.ops.import_scene.fbx
+    if 'FINISHED' not in import_fbx(filepath=fbx_file_path):
+        raise RuntimeError(f"Failed to import FBX: {fbx_file_path}")
 
-    obj = next((o for o in bpy.context.scene.objects if o.type == 'MESH'), None)
+    meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
+    if not meshes:
+        raise RuntimeError(f"No mesh found in: {fbx_file_path}")
 
-    if not obj or not obj.data or not obj.data.shape_keys:
-        raise RuntimeError(f"No mesh with shape keys found in: {fbx_file_path}")
-
-    bpy.ops.object.select_all(action='DESELECT')
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
+    meshes_with_shape_keys = [obj for obj in meshes if obj.data.shape_keys]
+    if not meshes_with_shape_keys:
+        print(f"Skipping shape key combination: no shape keys in {fbx_file_path}. FBX left unchanged.", flush=True)
+        return
 
     shape_key_combinations = {
         "C_glabella_down_pose": {"browDownL": 0.75, "browDownR": 0.75, "browLateralL": 1.0, "browLateralR": 1.0},
@@ -108,31 +111,55 @@ try:
     }
 
     def combine_shape_keys(target_obj, new_shape_key_name, shape_key_data):
-        if new_shape_key_name in target_obj.data.shape_keys.key_blocks:
-            return
+        shape_keys = target_obj.data.shape_keys
+        if new_shape_key_name in shape_keys.key_blocks:
+            return False
 
-        basis = target_obj.data.shape_keys.key_blocks['Basis']
+        source_keys = [(shape_keys.key_blocks[name], value)
+                       for name, value in shape_key_data.items()
+                       if name in shape_keys.key_blocks]
+        if not source_keys:
+            return False
+
+        basis = shape_keys.reference_key
         new_shape = target_obj.shape_key_add(name=new_shape_key_name, from_mix=False)
         new_shape.interpolation = 'KEY_LINEAR'
+        new_shape.value = 0.0
 
-        for key_name, value in shape_key_data.items():
-            if key_name in target_obj.data.shape_keys.key_blocks:
-                key_block = target_obj.data.shape_keys.key_blocks[key_name]
-                for i in range(len(target_obj.data.vertices)):
-                    new_shape.data[i].co += (key_block.data[i].co - basis.data[i].co) * value
+        for key_block, value in source_keys:
+            for i in range(len(target_obj.data.vertices)):
+                new_shape.data[i].co += (key_block.data[i].co - basis.data[i].co) * value
+        return True
 
-    for new_shape_key, data in shape_key_combinations.items():
-        if new_shape_key not in obj.data.shape_keys.key_blocks:
-            combine_shape_keys(obj, new_shape_key, data)
+    combined_count = 0
+    for obj in meshes_with_shape_keys:
+        for new_shape_key, data in shape_key_combinations.items():
+            if combine_shape_keys(obj, new_shape_key, data):
+                combined_count += 1
+
+    if not combined_count:
+        print(f"Skipping shape key combination: no new legacy facial poses needed in {fbx_file_path}. FBX left unchanged.", flush=True)
+        return
 
     # Export using Better FBX Exporter
-    bpy.ops.better_export.fbx(
+    result = bpy.ops.better_export.fbx(
         filepath=fbx_file_path,
         use_optimize_for_game_engine=False,
         use_edge_crease=False,
     )
+    if 'FINISHED' not in result:
+        raise RuntimeError(f"Failed to export combined shape keys: {fbx_file_path}")
+    print(f"Combined {combined_count} legacy facial shape keys in {fbx_file_path}.", flush=True)
 
-except Exception as e:
-    err_trace = traceback.format_exc()
-    log_error(f"--- ERROR OCCURRED --- \n{err_trace}\n")
-    sys.exit(1)
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception:
+        err_trace = traceback.format_exc()
+        print(err_trace, file=sys.stderr, flush=True)
+        try:
+            log_error(f"--- ERROR OCCURRED --- \n{err_trace}\n")
+        except OSError as log_exception:
+            print(f"Could not write Blender error log: {log_exception}", file=sys.stderr, flush=True)
+        sys.exit(1)

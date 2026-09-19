@@ -39,15 +39,15 @@ EXISTING_SKELETON_PATH = None
 unreal.EditorAssetLibrary.load_asset("/Game/CID_Template")
 
 
-def delete_directory_if_exists(path):
+def require_prepared_directory(path):
     if unreal.EditorAssetLibrary.does_directory_exist(path):
-        unreal.EditorAssetLibrary.delete_directory(path)
-        unreal.log("Deleted existing directory: {}".format(path))
+        if unreal.EditorAssetLibrary.list_assets(path, recursive=True, include_folder=False):
+            raise RuntimeError("Existing skin assets were not prepared before Unreal started: {}. Run export from the updated UFMT application.".format(path))
 
 
-delete_directory_if_exists(fbx_destination_path)
-delete_directory_if_exists(tex_destination_path)
-delete_directory_if_exists(mi_destination_path)
+require_prepared_directory(fbx_destination_path)
+require_prepared_directory(tex_destination_path)
+require_prepared_directory(mi_destination_path)
 
 
 def import_fbx(fbx_path, asset_name, use_base_head = False):
@@ -201,7 +201,7 @@ def create_fake_cid():
     new_path      = "{}/{}/{}".format(ue_skins_package_path, code_name, cid)
 
     if unreal.EditorAssetLibrary.does_asset_exist(new_path):
-        unreal.EditorAssetLibrary.delete_asset(new_path)
+        raise RuntimeError("Existing CID was not prepared before Unreal started: {}".format(new_path))
 
     success = unreal.EditorAssetLibrary.duplicate_asset(template_path, new_path)
 
